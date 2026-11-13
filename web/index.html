@@ -353,6 +353,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     let smileMode = false;
     let capturedPositions = null;
     let capturedColors = null;
+    let capturedIndices = null;
     const frameCanvas = document.createElement('canvas');
     const frameContext = frameCanvas.getContext('2d', { willReadFrequently: true });
     let currentLandmarks = null;
@@ -501,12 +502,18 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       return positions;
     }
 
-    function updateMesh(positions) {
+    function updateMesh(positions, indices = FACE_INDICES) {
       if (!positions) return;
+      if (mesh && mesh.geometry.attributes.position.count !== positions.length / 3) {
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+        mesh = null;
+      }
       if (!mesh) {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions.length), 3));
-        geometry.setIndex(FACE_INDICES);
+        geometry.setIndex(indices);
         const material = new THREE.MeshStandardMaterial({ color: 0x00e676, roughness: 0.6 });
         mesh = new THREE.Mesh(geometry, material);
         mesh.frustumCulled = false;
@@ -636,6 +643,100 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       return colors;
     }
 
+    function subdivisionPlan(indices, vertexCount) {
+      const edges = new Map();
+      const neighbors = Array.from({ length: vertexCount }, () => new Set());
+      const border = Array.from({ length: vertexCount }, () => []);
+      const triangles = [];
+      function midpoint(a, b, opposite) {
+        const key = Math.min(a, b) * vertexCount + Math.max(a, b);
+        let edge = edges.get(key);
+        if (!edge) {
+          edge = { a, b, opposites: [], index: vertexCount + edges.size };
+          edges.set(key, edge);
+          neighbors[a].add(b);
+          neighbors[b].add(a);
+        }
+        edge.opposites.push(opposite);
+        return edge.index;
+      }
+
+      for (let i = 0; i < indices.length; i += 3) {
+        const [a, b, c] = [indices[i], indices[i + 1], indices[i + 2]];
+        const ab = midpoint(a, b, c);
+        const bc = midpoint(b, c, a);
+        const ca = midpoint(c, a, b);
+        triangles.push(a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca);
+      }
+      for (const { a, b, opposites } of edges.values()) {
+        if (opposites.length === 1) {
+          border[a].push(b);
+          border[b].push(a);
+        }
+      }
+      return { edges, neighbors, border, indices: triangles, vertexCount: vertexCount + edges.size };
+    }
+
+    const firstSubdivision = subdivisionPlan(FACE_INDICES, FACE_VERTEX_COUNT);
+    const secondSubdivision = subdivisionPlan(firstSubdivision.indices, firstSubdivision.vertexCount);
+
+    function subdivide(positions, colors, plan) {
+      const refined = new Float32Array(plan.vertexCount * 3);
+      const rgb = colors ? new Uint8Array(refined.length) : null;
+      for (let v = 0; v < positions.length / 3; v++) {
+        const rim = plan.border[v];
+        const ring = plan.neighbors[v];
+        const beta = (5 / 8 - (3 / 8 + Math.cos(2 * Math.PI / ring.size) / 4) ** 2) / ring.size;
+        for (let axis = 0; axis < 3; axis++) {
+          const index = 3 * v + axis;
+          const current = positions[index];
+          let offset = 0;
+          if (rim.length === 2) {
+            offset = (positions[3 * rim[0] + axis] + positions[3 * rim[1] + axis] - 2 * current) / 8;
+          } else if (!rim.length) {
+            for (const neighbor of ring) offset += beta * (positions[3 * neighbor + axis] - current);
+          }
+          refined[index] = current + 0.65 * offset;
+          if (rgb) rgb[index] = colors[index];
+        }
+      }
+      for (const { a, b, opposites, index } of plan.edges.values()) {
+        for (let axis = 0; axis < 3; axis++) {
+          const start = 3 * a + axis;
+          const end = 3 * b + axis;
+          const middle = 3 * index + axis;
+          const average = (positions[start] + positions[end]) / 2;
+          refined[middle] = opposites.length === 2
+            ? 0.75 * average + 0.125 * (positions[3 * opposites[0] + axis] + positions[3 * opposites[1] + axis])
+            : average;
+          if (rgb) rgb[middle] = Math.round((colors[start] + colors[end]) / 2);
+        }
+      }
+      return { positions: refined, colors: rgb };
+    }
+
+    function vertexNormals(positions, indices) {
+      const normals = new Float32Array(positions.length);
+      for (let i = 0; i < indices.length; i += 3) {
+        const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+        const ux = positions[b] - positions[a], uy = positions[b + 1] - positions[a + 1], uz = positions[b + 2] - positions[a + 2];
+        const vx = positions[c] - positions[a], vy = positions[c + 1] - positions[a + 1], vz = positions[c + 2] - positions[a + 2];
+        for (const vertex of [a, b, c]) {
+          normals[vertex] += uy * vz - uz * vy;
+          normals[vertex + 1] += uz * vx - ux * vz;
+          normals[vertex + 2] += ux * vy - uy * vx;
+        }
+      }
+      for (let i = 0; i < normals.length; i += 3) {
+        const length = Math.hypot(normals[i], normals[i + 1], normals[i + 2]);
+        if (!length) continue;
+        normals[i] /= length;
+        normals[i + 1] /= length;
+        normals[i + 2] /= length;
+      }
+      return normals;
+    }
+
     function captureFrame() {
       const positions = facePositions(currentLandmarks, video.videoWidth / video.videoHeight);
       if (!positions) {
@@ -647,8 +748,12 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       } catch (error) {
         capturedColors = null;
       }
-      capturedPositions = positions;
-      updateMesh(capturedPositions);
+      const first = subdivide(positions, capturedColors, firstSubdivision);
+      const refined = subdivide(first.positions, first.colors, secondSubdivision);
+      capturedPositions = refined.positions;
+      capturedColors = refined.colors;
+      capturedIndices = secondSubdivision.indices;
+      updateMesh(capturedPositions, capturedIndices);
       captureBtn.textContent = 'گرفتن دوباره';
       stlBtn.disabled = false;
       plyBtn.disabled = !capturedColors;
@@ -657,13 +762,13 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         : 'فریم ثبت شد. خروجی STL آماده است.';
     }
 
-    function faceSTL(positions) {
+    function faceSTL(positions, indices = FACE_INDICES) {
       const output = ['solid face_surface'];
       const coordinateScale = 100;
-      for (let i = 0; i < FACE_INDICES.length; i += 3) {
-        const a = FACE_INDICES[i] * 3;
-        const b = FACE_INDICES[i + 1] * 3;
-        const c = FACE_INDICES[i + 2] * 3;
+      for (let i = 0; i < indices.length; i += 3) {
+        const a = indices[i] * 3;
+        const b = indices[i + 1] * 3;
+        const c = indices[i + 2] * 3;
         const ux = positions[b] - positions[a];
         const uy = positions[b + 1] - positions[a + 1];
         const uz = positions[b + 2] - positions[a + 2];
@@ -689,7 +794,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
 
     function exportSTL() {
       if (!capturedPositions) return;
-      const stl = faceSTL(capturedPositions);
+      const stl = faceSTL(capturedPositions, capturedIndices);
       if (!stl) {
         statusEl.textContent = 'سطح این فریم ناقص است. روبه‌روی دوربین دوباره فریم بگیر.';
         return;
@@ -699,29 +804,32 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       statusEl.textContent = 'STL سطح صورت آماده شد. ابعاد فایل تقریبی است.';
     }
 
-    function facePLY(positions, colors) {
+    function facePLY(positions, colors, indices) {
+      const normals = vertexNormals(positions, indices);
       const lines = [
         'ply', 'format ascii 1.0', 'comment Approximate facial surface',
-        `element vertex ${FACE_VERTEX_COUNT}`,
+        `element vertex ${positions.length / 3}`,
         'property float x', 'property float y', 'property float z',
+        'property float nx', 'property float ny', 'property float nz',
         'property uchar red', 'property uchar green', 'property uchar blue',
-        `element face ${FACE_INDICES.length / 3}`,
+        `element face ${indices.length / 3}`,
         'property list uchar int vertex_indices', 'end_header'
       ];
       for (let i = 0; i < positions.length; i += 3) {
         const [x, y, z] = positions.subarray(i, i + 3);
+        const [nx, ny, nz] = normals.subarray(i, i + 3);
         const [red, green, blue] = colors.subarray(i, i + 3);
-        lines.push(`${100 * x} ${100 * y} ${100 * z} ${red} ${green} ${blue}`);
+        lines.push(`${100 * x} ${100 * y} ${100 * z} ${nx} ${ny} ${nz} ${red} ${green} ${blue}`);
       }
-      for (let i = 0; i < FACE_INDICES.length; i += 3) {
-        lines.push(`3 ${FACE_INDICES[i]} ${FACE_INDICES[i + 1]} ${FACE_INDICES[i + 2]}`);
+      for (let i = 0; i < indices.length; i += 3) {
+        lines.push(`3 ${indices[i]} ${indices[i + 1]} ${indices[i + 2]}`);
       }
       return lines.join('\n') + '\n';
     }
 
     function exportPLY() {
       if (!capturedPositions || !capturedColors) return;
-      downloadModel(facePLY(capturedPositions, capturedColors), 'face-surface-color.ply', 'application/octet-stream');
+      downloadModel(facePLY(capturedPositions, capturedColors, capturedIndices), 'face-surface-color.ply', 'application/octet-stream');
       statusEl.textContent = 'PLY رنگی آماده شد. ابعاد فایل تقریبی است.';
     }
 
@@ -742,6 +850,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       smileBtn.style.background = smileMode ? '#ff9800' : '#424242';
       capturedPositions = null;
       capturedColors = null;
+      capturedIndices = null;
       plyBtn.disabled = true;
       captureBtn.textContent = 'گرفتن فریم';
       stlBtn.disabled = true;

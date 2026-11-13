@@ -129,7 +129,6 @@
     let capturedFrames = [];
     let currentLandmarks = null;
 
-    // Three.js setup for preview
     let scene, camera, renderer, mesh;
     function initThree() {
       scene = new THREE.Scene();
@@ -146,7 +145,6 @@
     function updateMesh(landmarks) {
       if (!landmarks || landmarks.length < 100) return;
       const points = [];
-      // Sample key points for a simple face mesh
       for (let i = 0; i < Math.min(landmarks.length, 200); i += 2) {
         const lm = landmarks[i];
         points.push(new THREE.Vector3(
@@ -243,7 +241,6 @@
             ctx.fill();
           }
 
-          // Bounding box
           let minX = 1, minY = 1, maxX = 0, maxY = 0;
           for (const lm of landmarks) {
             minX = Math.min(minX, lm.x);
@@ -272,7 +269,7 @@
       }
       capturedFrames.push(currentLandmarks);
       statusEl.textContent = `فریم ${capturedFrames.length} گرفته شد`;
-      anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length} — حالا چپ/راست/بالا رو بگیر`;
+      anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length}`;
     }
 
     function exportSTL() {
@@ -280,15 +277,35 @@
         statusEl.textContent = 'اول صورت را تشخیص بده';
         return;
       }
-      // Simple STL from current landmarks (point cloud approximation)
+
+      // Better mesh: use a grid-like sampling of landmarks for cleaner triangles
+      const scale = 120;
+      const pts = currentLandmarks.map(lm => ({
+        x: (lm.x - 0.5) * scale,
+        y: (0.5 - lm.y) * scale,
+        z: (lm.z || 0) * scale * 0.6
+      }));
+
       let stl = 'solid face_scan\n';
-      const pts = currentLandmarks.slice(0, 150);
-      for (let i = 0; i < pts.length - 2; i += 3) {
-        const a = pts[i], b = pts[i+1], c = pts[i+2];
+      // Create triangles in a more structured way (every 4 points form 2 triangles)
+      for (let i = 0; i < pts.length - 4; i += 2) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const c = pts[i + 2];
+        const d = pts[i + 3];
+
+        // Triangle 1
         stl += `  facet normal 0 0 1\n    outer loop\n`;
-        stl += `      vertex ${(a.x-0.5)*100} ${(0.5-a.y)*100} ${(a.z||0)*50}\n`;
-        stl += `      vertex ${(b.x-0.5)*100} ${(0.5-b.y)*100} ${(b.z||0)*50}\n`;
-        stl += `      vertex ${(c.x-0.5)*100} ${(0.5-c.y)*100} ${(c.z||0)*50}\n`;
+        stl += `      vertex ${a.x.toFixed(3)} ${a.y.toFixed(3)} ${a.z.toFixed(3)}\n`;
+        stl += `      vertex ${b.x.toFixed(3)} ${b.y.toFixed(3)} ${b.z.toFixed(3)}\n`;
+        stl += `      vertex ${c.x.toFixed(3)} ${c.y.toFixed(3)} ${c.z.toFixed(3)}\n`;
+        stl += `    endloop\n  endfacet\n`;
+
+        // Triangle 2
+        stl += `  facet normal 0 0 1\n    outer loop\n`;
+        stl += `      vertex ${b.x.toFixed(3)} ${b.y.toFixed(3)} ${b.z.toFixed(3)}\n`;
+        stl += `      vertex ${d.x.toFixed(3)} ${d.y.toFixed(3)} ${d.z.toFixed(3)}\n`;
+        stl += `      vertex ${c.x.toFixed(3)} ${c.y.toFixed(3)} ${c.z.toFixed(3)}\n`;
         stl += `    endloop\n  endfacet\n`;
       }
       stl += 'endsolid face_scan\n';
@@ -297,10 +314,10 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'face-scan.stl';
+      a.download = 'face-scan-improved.stl';
       a.click();
       URL.revokeObjectURL(url);
-      statusEl.textContent = 'STL دانلود شد (مدل تقریبی)';
+      statusEl.textContent = 'STL بهتر دانلود شد';
     }
 
     smileBtn.addEventListener('click', () => {

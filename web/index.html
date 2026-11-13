@@ -274,34 +274,34 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     }
     #preview3d.interactive { touch-action: none; cursor: grab; }
     #ui {
-      position: absolute;
-      bottom: 20px;
-      left: 0; right: 0;
-      text-align: center;
-      z-index: 10;
-      padding: 0 12px;
+      position: absolute; z-index: 10; inset-inline: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: min(calc(100% - 24px), 470px); margin-inline: auto;
+      background: #111a22f2; border: 1px solid #41515c;
+      border-radius: 22px; padding: 10px; text-align: center;
     }
+    .controls { display: flex; gap: 6px; }
+    .controls + .controls { margin-top: 7px; }
     button {
-      background: #2196F3;
-      color: white;
-      border: none;
-      padding: 14px 22px;
-      font-size: 16px;
-      font-weight: 600;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(33,150,243,0.4);
-      margin: 4px;
+      flex: 1; min-width: 0; min-height: 44px;
+      padding: 7px 4px; border: 1px solid transparent; border-radius: 12px;
+      background: #8ce6bd; color: #10241d;
+      font: 650 14px system-ui, sans-serif; cursor: pointer;
     }
-    button:disabled { opacity: 0.5; cursor: default; }
-    button:active { transform: scale(0.96); }
-    button.secondary { background: #424242; }
-    button.success { background: #4CAF50; }
-    #status {
-      margin-top: 8px;
-      font-size: 14px;
-      opacity: 0.9;
-      min-height: 20px;
+    button.secondary { background: #23323e; color: #edf5fa; border-color: #41515c; }
+    button.success { background: #254539; color: #d0ffea; border-color: #486d5d; }
+    #captureBtn { background: #8ce6bd; color: #10241d; font-size: 16px; min-height: 48px; }
+    button:disabled, #captureBtn:disabled { background: #25343e; color: #aebdc6; cursor: default; }
+    button:focus-visible { outline: 2px solid #a3f7c9; outline-offset: 2px; }
+    #status { margin-top: 6px; font-size: 12px; color: #c9d7e0; }
+    #status:empty { display: none; }
+    #exports[hidden] { display: none; }
+    #scanSteps { gap: 3px; font-size: clamp(10px, 3vw, 13px); }
+    #scanSteps span { flex: 1; white-space: nowrap; }
+    #preview3d.result {
+      width: min(64vw, 31dvh, 320px); height: min(64vw, 31dvh, 320px);
+      right: 50%; transform: translateX(50%); top: 76px;
+      background: #111a22f2;
     }
     #guide {
       position: absolute;
@@ -333,19 +333,25 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
   <div id="angles"></div>
 
   <section id="scanGuide" hidden aria-label="راهنمای ثبت چندزاویه‌ای">
-    <div id="scanSteps"><span>روبه‌رو</span><span>سه‌رخ اول</span><span>سه‌رخ دوم</span></div>
-    <progress id="scanProgress" max="3" value="0" aria-label="تعداد نماهای ثبت‌شده"></progress>
+    <div id="scanSteps"><span>روبه‌رو</span><span>مایل اول</span><span>سه‌رخ اول</span><span>مایل دوم</span><span>سه‌رخ دوم</span></div>
+    <progress id="scanProgress" max="5" value="0" aria-label="تعداد نماهای ثبت‌شده"></progress>
     <div id="scanMessage" role="status"></div>
   </section>
   <div id="ui">
-    <button id="startBtn">شروع اسکن</button>
-    <button id="cameraBtn" class="secondary" aria-label="تغییر دوربین">دوربین پشت</button>
-    <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
-    <button id="captureBtn" disabled class="secondary" style="display:none;">گرفتن فریم</button>
-    <button id="multiBtn" class="secondary" style="display:none;">ثبت چندزاویه‌ای</button>
-    <button id="colorBtn" class="secondary" style="display:none;">نمای خاکستری</button>
-    <button id="stlBtn" disabled class="success" style="display:none;">خروجی STL</button>
-    <button id="plyBtn" disabled class="success" style="display:none;">خروجی PLY رنگی</button>
+    <div class="controls">
+      <button id="cameraBtn" class="secondary" aria-label="تغییر دوربین">دوربین پشت</button>
+      <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
+      <button id="multiBtn" class="secondary" style="display:none;">ثبت چندزاویه‌ای</button>
+    </div>
+    <div class="controls">
+      <button id="startBtn">شروع اسکن</button>
+      <button id="captureBtn" disabled style="display:none;">گرفتن فریم</button>
+    </div>
+    <div id="exports" class="controls" hidden>
+      <button id="colorBtn" class="secondary" style="display:none;">نمای خاکستری</button>
+      <button id="stlBtn" disabled class="success" style="display:none;">STL</button>
+      <button id="plyBtn" disabled class="success" style="display:none;">PLY رنگی</button>
+    </div>
     <div id="status" role="status">آماده برای شروع</div>
   </div>
 
@@ -364,6 +370,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     const colorBtn = document.getElementById('colorBtn');
     const stlBtn = document.getElementById('stlBtn');
     const plyBtn = document.getElementById('plyBtn');
+    const exportsEl = document.getElementById('exports');
     const statusEl = document.getElementById('status');
     const cameraBtn = document.getElementById('cameraBtn');
     const scanGuide = document.getElementById('scanGuide');
@@ -384,6 +391,9 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     let capturedPositions = null;
     let capturedColors = null;
     let capturedIndices = null;
+    let capturedTexture = null;
+    let capturedUV = null;
+    let capturedViewCount = 1;
     let captureViews = null;
     let previewColor = true;
     let previewYaw = 0;
@@ -515,7 +525,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(50, 1, 0.01, 10);
       renderer = new THREE.WebGLRenderer({ canvas: preview3d, alpha: true, antialias: true });
-      renderer.setSize(140, 140);
+      renderer.setSize(360, 360, false);
       const light = new THREE.DirectionalLight(0xffffff, 1.2);
       light.position.set(1, 1, 2);
       scene.add(light);
@@ -572,7 +582,13 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         }
         attribute.needsUpdate = true;
       }
-      const showColors = !!colors && previewColor;
+      const map = previewColor && capturedPositions ? capturedTexture : null;
+      if (map) mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(capturedUV, 2));
+      const showColors = !!colors && previewColor && !map;
+      if (mesh.material.map !== map) {
+        mesh.material.map = map;
+        mesh.material.needsUpdate = true;
+      }
       if (mesh.material.vertexColors !== showColors) {
         mesh.material.vertexColors = showColors;
         mesh.material.needsUpdate = true;
@@ -981,6 +997,11 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       capturedPositions = null;
       capturedColors = null;
       capturedIndices = null;
+      capturedTexture?.dispose();
+      capturedTexture = null;
+      capturedUV = null;
+      exportsEl.hidden = true;
+      preview3d.classList.remove('result');
       plyBtn.disabled = true;
       stlBtn.disabled = true;
       colorBtn.style.display = 'none';
@@ -995,11 +1016,19 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       captureBtn.disabled = !ready;
     }
 
+    const scanLabels = ['روبه‌رو', 'مایل اول', 'سه‌رخ اول', 'مایل دوم', 'سه‌رخ دوم'];
+    const scanPrompts = [
+      'از روبه‌رو شروع کن.',
+      'گوشی را کمی به یک طرف ببر.',
+      'از همین سمت کمی بیشتر به کنار برو.',
+      'به سمت دیگر صورت برو و کمی مایل بگیر.',
+      'از همین سمت کمی بیشتر به کنار برو.'
+    ];
+
     function scanProgressTo(count) {
       scanProgress.value = count;
-      const labels = ['روبه‌رو', 'سه‌رخ اول', 'سه‌رخ دوم'];
       Array.from(scanSteps.children).forEach((step, i) => {
-        step.textContent = (i < count ? '✓ ' : i === count ? '● ' : '○ ') + labels[i];
+        step.textContent = (i < count ? '✓ ' : i === count ? '● ' : '○ ') + scanLabels[i];
       });
     }
 
@@ -1039,11 +1068,18 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       } else {
         const pose = fitPose(captureViews[0].positions, positions);
         const angle = Math.abs(pose?.yaw ?? 0);
-        if (angle < 22 || angle > 60 || Math.abs(pose.pitch) > 22) {
-          return { message: 'گوشی را در ارتفاع صورت نگه دار و از سه‌رخ فریم بگیر.' };
+        const step = captureViews.length;
+        if (!pose || Math.abs(pose.pitch) > 22) {
+          return { message: 'گوشی را در ارتفاع صورت نگه دار.' };
         }
-        if (captureViews.length === 2 && Math.sign(pose.yaw) === Math.sign(captureViews[1].yaw)) {
-          return { message: 'سه‌رخ سمت دیگر هنوز ثبت نشده.' };
+        if (step > 1 && angle > 9) {
+          const firstSide = Math.sign(captureViews[1].yaw);
+          const expected = step === 2 ? firstSide : -firstSide;
+          if (Math.sign(pose.yaw) !== expected) return { message: scanPrompts[step] };
+        }
+        const far = step === 2 || step === 4;
+        if (angle < (far ? 33 : 12) || angle > (far ? 58 : 25)) {
+          return { message: angle > (far ? 58 : 25) ? 'کمی به روبه‌رو برگرد.' : scanPrompts[step] };
         }
         yaw = pose.yaw;
       }
@@ -1060,7 +1096,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
 
     function refreshScanGuide() {
       const assessment = assessView(facePositions(currentLandmarks, video.videoWidth / video.videoHeight));
-      const cue = ['روبه‌رو', 'سه‌رخ اول', 'سه‌رخ طرف دیگر'][captureViews.length];
+      const cue = scanLabels[captureViews.length];
       const mode = captureViews.length === 0 ? (smileMode ? ' با لبخند ثابت' : ' با دهان بسته') : '';
       showScanGuide(assessment.message || cue + mode + ' آماده است؛ فریم بگیر.', !assessment.message);
     }
@@ -1071,22 +1107,23 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         showScanGuide(view.message);
         return;
       }
+      if (!captureViews.length) saveFrontTexture();
       captureViews.push(view);
       const count = captureViews.length;
       scanProgressTo(count);
-      if (count < 3) {
-        showScanGuide(count === 1 ? 'سر ثابت بماند؛ گوشی را به یک طرف ببر.' : 'حالا گوشی را به سمت دیگر ببر.');
+      if (count < scanLabels.length) {
+        showScanGuide(scanPrompts[count]);
         return;
       }
       scanGuide.hidden = true;
       captureBtn.disabled = false;
-      anglesEl.textContent = '✓ هر سه نما ثبت شد';
+      anglesEl.textContent = '✓ هر پنج نما ثبت شد';
       const [front, ...sides] = captureViews;
       const model = combineViews(front, sides);
       captureViews = null;
       multiBtn.textContent = 'ثبت چندزاویه‌ای';
       guideEl.textContent = 'مدل آماده است. برای چرخاندن، پیش‌نمایش را بکش.';
-      finishCapture(model.positions, model.colors, true);
+      finishCapture(model.positions, model.colors, count);
     }
 
     function captureFrame() {
@@ -1105,25 +1142,61 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       } catch (error) {
         capturedColors = null;
       }
-      finishCapture(positions, capturedColors, false);
+      saveFrontTexture();
+      finishCapture(positions, capturedColors, 1);
     }
 
-    function finishCapture(positions, colors, multi) {
+    function saveFrontTexture() {
+      capturedTexture?.dispose();
+      capturedTexture = null;
+      capturedUV = null;
+      try {
+        const photo = document.createElement('canvas');
+        const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
+        photo.width = Math.max(1, Math.round(video.videoWidth * scale));
+        photo.height = Math.max(1, Math.round(video.videoHeight * scale));
+        const context = photo.getContext('2d');
+        if (!context) return;
+        context.drawImage(video, 0, 0, photo.width, photo.height);
+        const uv = new Float32Array(secondSubdivision.vertexCount * 2);
+        for (let i = 0; i < FACE_VERTEX_COUNT; i++) {
+          const { x, y } = currentLandmarks[i];
+          uv.set([Math.max(0, Math.min(1, x)), 1 - Math.max(0, Math.min(1, y))], i * 2);
+        }
+        for (const plan of [firstSubdivision, secondSubdivision]) {
+          for (const { a, b, index } of plan.edges.values()) {
+            uv[2 * index] = (uv[2 * a] + uv[2 * b]) / 2;
+            uv[2 * index + 1] = (uv[2 * a + 1] + uv[2 * b + 1]) / 2;
+          }
+        }
+        capturedTexture = new THREE.CanvasTexture(photo);
+        capturedTexture.colorSpace = THREE.SRGBColorSpace;
+        capturedUV = uv;
+      } catch {
+        capturedTexture?.dispose();
+        capturedTexture = null;
+      }
+    }
+
+    function finishCapture(positions, colors, viewCount) {
       const first = subdivide(positions, colors, firstSubdivision);
       const refined = subdivide(first.positions, first.colors, secondSubdivision);
       capturedPositions = refined.positions;
       capturedColors = refined.colors;
       capturedIndices = secondSubdivision.indices;
+      capturedViewCount = viewCount;
+      exportsEl.hidden = false;
+      preview3d.classList.add('result');
       previewYaw = 0;
       previewColor = true;
       colorBtn.textContent = 'نمای خاکستری';
-      colorBtn.style.display = capturedColors ? 'inline-block' : 'none';
+      colorBtn.style.display = capturedColors || capturedTexture ? 'inline-block' : 'none';
       updateMesh(capturedPositions, capturedIndices, capturedColors);
       captureBtn.textContent = 'گرفتن دوباره';
       stlBtn.disabled = false;
       plyBtn.disabled = !capturedColors;
       statusEl.textContent = capturedColors
-        ? (multi ? 'مدل چندزاویه‌ای آماده است.' : 'فریم ثبت شد. خروجی STL و PLY رنگی آماده است.')
+        ? (viewCount > 1 ? 'مدل پنج‌نما آماده است.' : 'فریم ثبت شد. خروجی STL و PLY رنگی آماده است.')
         : 'فریم ثبت شد. خروجی STL آماده است.';
     }
 
@@ -1165,7 +1238,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         return;
       }
 
-      downloadModel(stl, 'face-surface.stl', 'model/stl');
+      downloadModel(stl, `face-${capturedViewCount}view.stl`, 'model/stl');
       statusEl.textContent = 'STL سطح صورت آماده شد. ابعاد فایل تقریبی است.';
     }
 
@@ -1194,7 +1267,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
 
     function exportPLY() {
       if (!capturedPositions || !capturedColors) return;
-      downloadModel(facePLY(capturedPositions, capturedColors, capturedIndices), 'face-surface-color.ply', 'application/octet-stream');
+      downloadModel(facePLY(capturedPositions, capturedColors, capturedIndices), `face-${capturedViewCount}view-color.ply`, 'application/octet-stream');
       statusEl.textContent = 'PLY رنگی آماده شد. ابعاد فایل تقریبی است.';
     }
 

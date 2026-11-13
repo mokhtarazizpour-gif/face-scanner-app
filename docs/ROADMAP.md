@@ -4,7 +4,8 @@
 - [x] Private repository
 - [x] Architecture documentation
 - [x] Flutter project skeleton (pubspec.yaml + main.dart)
-- [ ] Full Flutter project init (android/ folder, etc.) — next
+- [x] Android folder structure + permissions (camera)
+- [ ] Full local Flutter setup & first run on device
 
 ## Phase 1 - Basic Scanning
 - Camera preview

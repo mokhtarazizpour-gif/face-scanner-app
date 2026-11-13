@@ -287,24 +287,52 @@
       anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length} — از زوایای مختلف بگیر`;
     }
 
+    function getAlignmentOffset(landmarks) {
+      // Use nose tip (1) + left eye (33) + right eye (263) for better centering
+      const nose = landmarks[1] || landmarks[4] || {x:0.5, y:0.5};
+      const leftEye = landmarks[33] || {x:0.4, y:0.4};
+      const rightEye = landmarks[263] || {x:0.6, y:0.4};
+      const centerX = (nose.x + leftEye.x + rightEye.x) / 3;
+      const centerY = (nose.y + leftEye.y + rightEye.y) / 3;
+      return { x: 0.5 - centerX, y: 0.5 - centerY };
+    }
+
+    function isSimilarFrame(a, b) {
+      if (!a || !b || a.length < 10 || b.length < 10) return false;
+      let diff = 0;
+      const samples = [1, 33, 263, 152, 10]; // nose, eyes, chin, forehead
+      for (const idx of samples) {
+        if (a[idx] && b[idx]) {
+          diff += Math.abs(a[idx].x - b[idx].x) + Math.abs(a[idx].y - b[idx].y);
+        }
+      }
+      return diff < 0.08; // threshold for similarity
+    }
+
     function exportSTL() {
-      const framesToUse = capturedFrames.length > 0 ? capturedFrames : (currentLandmarks ? [currentLandmarks] : []);
+      let framesToUse = capturedFrames.length > 0 ? [...capturedFrames] : (currentLandmarks ? [currentLandmarks] : []);
       if (framesToUse.length === 0) {
         statusEl.textContent = 'اول فریم بگیر';
         return;
       }
 
+      // Filter similar consecutive frames
+      const filtered = [framesToUse[0]];
+      for (let i = 1; i < framesToUse.length; i++) {
+        if (!isSimilarFrame(framesToUse[i], filtered[filtered.length - 1])) {
+          filtered.push(framesToUse[i]);
+        }
+      }
+      framesToUse = filtered;
+
       const scale = 100;
       const depthScale = 3;
       let stl = 'solid face_mesh_multi\n';
 
-      framesToUse.forEach((landmarks, frameIdx) => {
+      framesToUse.forEach((landmarks) => {
         if (!landmarks || landmarks.length < 400) return;
 
-        // Align using nose tip (index 1) as reference
-        const nose = landmarks[1] || landmarks[4] || {x:0.5, y:0.5, z:0};
-        const offsetX = 0.5 - nose.x;
-        const offsetY = 0.5 - nose.y;
+        const offset = getAlignmentOffset(landmarks);
 
         for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
           const i1 = FACE_INDICES[i];
@@ -317,16 +345,16 @@
           const b = landmarks[i2];
           const c = landmarks[i3];
 
-          const ax = (a.x + offsetX - 0.5) * scale;
-          const ay = (0.5 - (a.y + offsetY)) * scale;
+          const ax = (a.x + offset.x - 0.5) * scale;
+          const ay = (0.5 - (a.y + offset.y)) * scale;
           const az = (a.z || 0) * scale * depthScale;
 
-          const bx = (b.x + offsetX - 0.5) * scale;
-          const by = (0.5 - (b.y + offsetY)) * scale;
+          const bx = (b.x + offset.x - 0.5) * scale;
+          const by = (0.5 - (b.y + offset.y)) * scale;
           const bz = (b.z || 0) * scale * depthScale;
 
-          const cx = (c.x + offsetX - 0.5) * scale;
-          const cy = (0.5 - (c.y + offsetY)) * scale;
+          const cx = (c.x + offset.x - 0.5) * scale;
+          const cy = (0.5 - (c.y + offset.y)) * scale;
           const cz = (c.z || 0) * scale * depthScale;
 
           const ux = bx - ax, uy = by - ay, uz = bz - az;
@@ -351,10 +379,10 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `face-mesh-multi-${framesToUse.length}.stl`;
+      a.download = `face-mesh-aligned-${framesToUse.length}.stl`;
       a.click();
       URL.revokeObjectURL(url);
-      statusEl.textContent = `استی‌ال از ${framesToUse.length} فریم دانلود شد`;
+      statusEl.textContent = `استی‌ال از ${framesToUse.length} فریم فیلتر شده دانلود شد`;
     }
 
     smileBtn.addEventListener('click', () => {

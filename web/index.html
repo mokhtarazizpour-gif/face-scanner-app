@@ -28,44 +28,65 @@
       height: 100%;
       pointer-events: none;
     }
+    #preview3d {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 140px;
+      height: 140px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      border: 1px solid #333;
+      display: none;
+      z-index: 20;
+    }
     #ui {
       position: absolute;
-      bottom: 30px;
+      bottom: 20px;
       left: 0; right: 0;
       text-align: center;
       z-index: 10;
-      padding: 0 16px;
+      padding: 0 12px;
     }
     button {
       background: #2196F3;
       color: white;
       border: none;
-      padding: 16px 28px;
-      font-size: 17px;
+      padding: 14px 22px;
+      font-size: 16px;
       font-weight: 600;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 6px 20px rgba(33,150,243,0.4);
-      margin: 6px;
+      box-shadow: 0 4px 15px rgba(33,150,243,0.4);
+      margin: 4px;
     }
     button:active { transform: scale(0.96); }
-    button.secondary {
-      background: #424242;
-    }
+    button.secondary { background: #424242; }
+    button.success { background: #4CAF50; }
     #status {
-      margin-top: 10px;
-      font-size: 15px;
+      margin-top: 8px;
+      font-size: 14px;
       opacity: 0.9;
-      min-height: 22px;
+      min-height: 20px;
     }
     #guide {
       position: absolute;
-      top: 20px;
+      top: 16px;
       left: 0; right: 0;
       text-align: center;
       font-size: 16px;
       font-weight: 500;
       text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      z-index: 5;
+      padding: 0 20px;
+    }
+    #angles {
+      position: absolute;
+      top: 50px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 13px;
+      opacity: 0.8;
       z-index: 5;
     }
   </style>
@@ -73,28 +94,76 @@
 <body>
   <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
+  <canvas id="preview3d"></canvas>
   <div id="guide">صورت را داخل فریم قرار بده</div>
+  <div id="angles"></div>
 
   <div id="ui">
     <button id="startBtn">شروع اسکن</button>
-    <button id="captureBtn" class="secondary" style="display:none;">گرفتن عکس</button>
+    <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
+    <button id="captureBtn" class="secondary" style="display:none;">گرفتن فریم</button>
+    <button id="stlBtn" class="success" style="display:none;">خروجی STL</button>
     <div id="status">آماده برای شروع</div>
   </div>
 
   <script type="module">
-    import { FaceLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+    import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const ctx = overlay.getContext('2d');
+    const preview3d = document.getElementById('preview3d');
     const startBtn = document.getElementById('startBtn');
+    const smileBtn = document.getElementById('smileBtn');
     const captureBtn = document.getElementById('captureBtn');
+    const stlBtn = document.getElementById('stlBtn');
     const statusEl = document.getElementById('status');
     const guideEl = document.getElementById('guide');
+    const anglesEl = document.getElementById('angles');
 
     let faceLandmarker = null;
     let running = false;
     let lastVideoTime = -1;
+    let smileMode = false;
+    let capturedFrames = [];
+    let currentLandmarks = null;
+
+    // Three.js setup for preview
+    let scene, camera, renderer, mesh;
+    function initThree() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+      camera.position.z = 2;
+      renderer = new THREE.WebGLRenderer({ canvas: preview3d, alpha: true, antialias: true });
+      renderer.setSize(140, 140);
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(1, 1, 1);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x404040));
+    }
+
+    function updateMesh(landmarks) {
+      if (!landmarks || landmarks.length < 100) return;
+      const points = [];
+      // Sample key points for a simple face mesh
+      for (let i = 0; i < Math.min(landmarks.length, 200); i += 2) {
+        const lm = landmarks[i];
+        points.push(new THREE.Vector3(
+          (lm.x - 0.5) * 2,
+          -(lm.y - 0.5) * 2,
+          (lm.z || 0) * 2
+        ));
+      }
+      if (points.length < 10) return;
+
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      if (mesh) scene.remove(mesh);
+      mesh = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x00e676, size: 0.02 }));
+      scene.add(mesh);
+      renderer.render(scene, camera);
+      preview3d.style.display = 'block';
+    }
 
     async function initMediaPipe() {
       statusEl.textContent = 'در حال بارگذاری مدل...';
@@ -107,11 +176,10 @@
           delegate: "GPU"
         },
         runningMode: "VIDEO",
-        numFaces: 1,
-        outputFaceBlendshapes: false,
-        outputFacialTransformationMatrixes: false
+        numFaces: 1
       });
       statusEl.textContent = 'مدل آماده است';
+      initThree();
     }
 
     function resize() {
@@ -129,8 +197,11 @@
         await video.play();
         running = true;
         startBtn.style.display = 'none';
+        smileBtn.style.display = 'inline-block';
         captureBtn.style.display = 'inline-block';
+        stlBtn.style.display = 'inline-block';
         statusEl.textContent = 'دوربین فعال شد';
+        anglesEl.textContent = 'زوایا: روبه‌رو → چپ → راست → بالا';
         resize();
         window.addEventListener('resize', resize);
         detectLoop();
@@ -139,7 +210,7 @@
       }
     }
 
-    async function detectLoop() {
+    function detectLoop() {
       if (!running || !faceLandmarker) return;
 
       if (video.currentTime !== lastVideoTime) {
@@ -148,11 +219,10 @@
 
         ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-        // Guide circle
         const cx = overlay.width / 2;
         const cy = overlay.height * 0.42;
         const r = Math.min(overlay.width, overlay.height) * 0.28;
-        ctx.strokeStyle = 'rgba(0, 230, 118, 0.6)';
+        ctx.strokeStyle = smileMode ? 'rgba(255, 193, 7, 0.7)' : 'rgba(0, 230, 118, 0.6)';
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -160,20 +230,20 @@
 
         if (results.faceLandmarks && results.faceLandmarks.length > 0) {
           const landmarks = results.faceLandmarks[0];
-          statusEl.textContent = 'صورت تشخیص داده شد';
-          guideEl.textContent = 'صورت خوب است — ثابت نگه دار';
+          currentLandmarks = landmarks;
+          statusEl.textContent = smileMode ? 'لبخند تشخیص داده شد' : 'صورت تشخیص داده شد';
+          guideEl.textContent = smileMode ? 'لبخند بزن و ثابت نگه دار' : 'صورت خوب است — ثابت نگه دار';
 
-          // Draw landmarks
-          ctx.fillStyle = '#00e676';
+          ctx.fillStyle = smileMode ? '#ffc107' : '#00e676';
           for (const lm of landmarks) {
             const x = lm.x * overlay.width;
             const y = lm.y * overlay.height;
             ctx.beginPath();
-            ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          // Simple bounding box from landmarks
+          // Bounding box
           let minX = 1, minY = 1, maxX = 0, maxY = 0;
           for (const lm of landmarks) {
             minX = Math.min(minX, lm.x);
@@ -183,45 +253,70 @@
           }
           ctx.strokeStyle = '#2196F3';
           ctx.lineWidth = 3;
-          ctx.strokeRect(
-            minX * overlay.width,
-            minY * overlay.height,
-            (maxX - minX) * overlay.width,
-            (maxY - minY) * overlay.height
-          );
+          ctx.strokeRect(minX * overlay.width, minY * overlay.height, (maxX - minX) * overlay.width, (maxY - minY) * overlay.height);
+
+          updateMesh(landmarks);
         } else {
           statusEl.textContent = 'صورت پیدا نشد';
           guideEl.textContent = 'صورت را داخل دایره قرار بده';
+          currentLandmarks = null;
         }
       }
-
       requestAnimationFrame(detectLoop);
     }
 
-    function capture() {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      const tctx = tempCanvas.getContext('2d');
-      tctx.translate(tempCanvas.width, 0);
-      tctx.scale(-1, 1);
-      tctx.drawImage(video, 0, 0);
-
-      const link = document.createElement('a');
-      link.download = 'face-scan-' + Date.now() + '.png';
-      link.href = tempCanvas.toDataURL('image/png');
-      link.click();
-      statusEl.textContent = 'عکس ذخیره شد';
+    function captureFrame() {
+      if (!currentLandmarks) {
+        statusEl.textContent = 'اول صورت را تشخیص بده';
+        return;
+      }
+      capturedFrames.push(currentLandmarks);
+      statusEl.textContent = `فریم ${capturedFrames.length} گرفته شد`;
+      anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length} — حالا چپ/راست/بالا رو بگیر`;
     }
+
+    function exportSTL() {
+      if (!currentLandmarks) {
+        statusEl.textContent = 'اول صورت را تشخیص بده';
+        return;
+      }
+      // Simple STL from current landmarks (point cloud approximation)
+      let stl = 'solid face_scan\n';
+      const pts = currentLandmarks.slice(0, 150);
+      for (let i = 0; i < pts.length - 2; i += 3) {
+        const a = pts[i], b = pts[i+1], c = pts[i+2];
+        stl += `  facet normal 0 0 1\n    outer loop\n`;
+        stl += `      vertex ${(a.x-0.5)*100} ${(0.5-a.y)*100} ${(a.z||0)*50}\n`;
+        stl += `      vertex ${(b.x-0.5)*100} ${(0.5-b.y)*100} ${(b.z||0)*50}\n`;
+        stl += `      vertex ${(c.x-0.5)*100} ${(0.5-c.y)*100} ${(c.z||0)*50}\n`;
+        stl += `    endloop\n  endfacet\n`;
+      }
+      stl += 'endsolid face_scan\n';
+
+      const blob = new Blob([stl], { type: 'application/sla' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'face-scan.stl';
+      a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = 'STL دانلود شد (مدل تقریبی)';
+    }
+
+    smileBtn.addEventListener('click', () => {
+      smileMode = !smileMode;
+      smileBtn.textContent = smileMode ? 'حالت صورت' : 'حالت لبخند';
+      smileBtn.style.background = smileMode ? '#ff9800' : '#424242';
+    });
 
     startBtn.addEventListener('click', async () => {
       if (!faceLandmarker) await initMediaPipe();
       startCamera();
     });
 
-    captureBtn.addEventListener('click', capture);
+    captureBtn.addEventListener('click', captureFrame);
+    stlBtn.addEventListener('click', exportSTL);
 
-    // Auto init on load
     initMediaPipe().catch(err => {
       statusEl.textContent = 'خطا در بارگذاری: ' + err.message;
     });

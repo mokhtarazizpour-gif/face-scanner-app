@@ -214,7 +214,7 @@
         captureBtn.style.display = 'inline-block';
         stlBtn.style.display = 'inline-block';
         statusEl.textContent = 'دوربین فعال شد';
-        anglesEl.textContent = 'زوایا: روبه‌رو → چپ → راست → بالا';
+        anglesEl.textContent = 'از چند زاویه فریم بگیر (روبه‌رو، چپ، راست، بالا)';
         resize();
         window.addEventListener('resize', resize);
         detectLoop();
@@ -245,7 +245,7 @@
           const landmarks = results.faceLandmarks[0];
           currentLandmarks = landmarks;
           statusEl.textContent = smileMode ? 'لبخند تشخیص داده شد' : 'صورت تشخیص داده شد';
-          guideEl.textContent = smileMode ? 'لبخند بزن و ثابت نگه دار' : 'صورت خوب است — ثابت نگه دار';
+          guideEl.textContent = smileMode ? 'لبخند بزن و فریم بگیر' : 'ثابت نگه دار و فریم بگیر';
 
           ctx.fillStyle = smileMode ? '#ffc107' : '#00e676';
           for (const lm of landmarks) {
@@ -282,69 +282,79 @@
         statusEl.textContent = 'اول صورت را تشخیص بده';
         return;
       }
-      capturedFrames.push(currentLandmarks);
+      capturedFrames.push(JSON.parse(JSON.stringify(currentLandmarks)));
       statusEl.textContent = `فریم ${capturedFrames.length} گرفته شد`;
-      anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length}`;
+      anglesEl.textContent = `فریم‌های گرفته شده: ${capturedFrames.length} — از زوایای مختلف بگیر`;
     }
 
     function exportSTL() {
-      if (!currentLandmarks || currentLandmarks.length < 400) {
-        statusEl.textContent = 'اول صورت را تشخیص بده';
+      const framesToUse = capturedFrames.length > 0 ? capturedFrames : (currentLandmarks ? [currentLandmarks] : []);
+      if (framesToUse.length === 0) {
+        statusEl.textContent = 'اول فریم بگیر';
         return;
       }
 
       const scale = 100;
       const depthScale = 3;
-      let stl = 'solid face_mesh\n';
+      let stl = 'solid face_mesh_multi\n';
 
-      for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
-        const i1 = FACE_INDICES[i];
-        const i2 = FACE_INDICES[i + 1];
-        const i3 = FACE_INDICES[i + 2];
+      framesToUse.forEach((landmarks, frameIdx) => {
+        if (!landmarks || landmarks.length < 400) return;
 
-        if (i1 >= currentLandmarks.length || i2 >= currentLandmarks.length || i3 >= currentLandmarks.length) continue;
+        // Align using nose tip (index 1) as reference
+        const nose = landmarks[1] || landmarks[4] || {x:0.5, y:0.5, z:0};
+        const offsetX = 0.5 - nose.x;
+        const offsetY = 0.5 - nose.y;
 
-        const a = currentLandmarks[i1];
-        const b = currentLandmarks[i2];
-        const c = currentLandmarks[i3];
+        for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
+          const i1 = FACE_INDICES[i];
+          const i2 = FACE_INDICES[i + 1];
+          const i3 = FACE_INDICES[i + 2];
 
-        const ax = (a.x - 0.5) * scale;
-        const ay = (0.5 - a.y) * scale;
-        const az = (a.z || 0) * scale * depthScale;
+          if (i1 >= landmarks.length || i2 >= landmarks.length || i3 >= landmarks.length) continue;
 
-        const bx = (b.x - 0.5) * scale;
-        const by = (0.5 - b.y) * scale;
-        const bz = (b.z || 0) * scale * depthScale;
+          const a = landmarks[i1];
+          const b = landmarks[i2];
+          const c = landmarks[i3];
 
-        const cx = (c.x - 0.5) * scale;
-        const cy = (0.5 - c.y) * scale;
-        const cz = (c.z || 0) * scale * depthScale;
+          const ax = (a.x + offsetX - 0.5) * scale;
+          const ay = (0.5 - (a.y + offsetY)) * scale;
+          const az = (a.z || 0) * scale * depthScale;
 
-        const ux = bx - ax, uy = by - ay, uz = bz - az;
-        const vx = cx - ax, vy = cy - ay, vz = cz - az;
-        let nx = uy * vz - uz * vy;
-        let ny = uz * vx - ux * vz;
-        let nz = ux * vy - uy * vx;
-        const len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
-        nx /= len; ny /= len; nz /= len;
+          const bx = (b.x + offsetX - 0.5) * scale;
+          const by = (0.5 - (b.y + offsetY)) * scale;
+          const bz = (b.z || 0) * scale * depthScale;
 
-        stl += `  facet normal ${nx.toFixed(4)} ${ny.toFixed(4)} ${nz.toFixed(4)}\n    outer loop\n`;
-        stl += `      vertex ${ax.toFixed(3)} ${ay.toFixed(3)} ${az.toFixed(3)}\n`;
-        stl += `      vertex ${bx.toFixed(3)} ${by.toFixed(3)} ${bz.toFixed(3)}\n`;
-        stl += `      vertex ${cx.toFixed(3)} ${cy.toFixed(3)} ${cz.toFixed(3)}\n`;
-        stl += `    endloop\n  endfacet\n`;
-      }
+          const cx = (c.x + offsetX - 0.5) * scale;
+          const cy = (0.5 - (c.y + offsetY)) * scale;
+          const cz = (c.z || 0) * scale * depthScale;
 
-      stl += 'endsolid face_mesh\n';
+          const ux = bx - ax, uy = by - ay, uz = bz - az;
+          const vx = cx - ax, vy = cy - ay, vz = cz - az;
+          let nx = uy * vz - uz * vy;
+          let ny = uz * vx - ux * vz;
+          let nz = ux * vy - uy * vx;
+          const len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
+          nx /= len; ny /= len; nz /= len;
+
+          stl += `  facet normal ${nx.toFixed(4)} ${ny.toFixed(4)} ${nz.toFixed(4)}\n    outer loop\n`;
+          stl += `      vertex ${ax.toFixed(3)} ${ay.toFixed(3)} ${az.toFixed(3)}\n`;
+          stl += `      vertex ${bx.toFixed(3)} ${by.toFixed(3)} ${bz.toFixed(3)}\n`;
+          stl += `      vertex ${cx.toFixed(3)} ${cy.toFixed(3)} ${cz.toFixed(3)}\n`;
+          stl += `    endloop\n  endfacet\n`;
+        }
+      });
+
+      stl += 'endsolid face_mesh_multi\n';
 
       const blob = new Blob([stl], { type: 'application/sla' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'face-mesh-3x.stl';
+      a.download = `face-mesh-multi-${framesToUse.length}.stl`;
       a.click();
       URL.revokeObjectURL(url);
-      statusEl.textContent = 'STL با عمق ۳ برابر دانلود شد';
+      statusEl.textContent = `استی‌ال از ${framesToUse.length} فریم دانلود شد`;
     }
 
     smileBtn.addEventListener('click', () => {

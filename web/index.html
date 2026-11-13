@@ -154,7 +154,7 @@
 
       for (let i = 0; i < landmarks.length; i++) {
         const lm = landmarks[i];
-        positions.push((lm.x - 0.5) * 2, -(lm.y - 0.5) * 2, (lm.z || 0) * 3);
+        positions.push((lm.x - 0.5) * 2, -(lm.y - 0.5) * 2, (lm.z || 0) * 300);
       }
 
       for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
@@ -294,7 +294,7 @@
       }
 
       const scale = 100;
-      const depthScale = 2.5;
+      const depthScale = 250;
       let stl = 'solid face_mesh\n';
 
       for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
@@ -341,10 +341,10 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'face-mesh-deep.stl';
+      a.download = 'face-mesh-x100.stl';
       a.click();
       URL.revokeObjectURL(url);
-      statusEl.textContent = 'STL با عمق بیشتر دانلود شد';
+      statusEl.textContent = 'STL با عمق ۱۰۰ برابر دانلود شد';
     }
 
     smileBtn.addEventListener('click', () => {

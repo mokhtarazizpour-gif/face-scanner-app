@@ -1,9 +1,10 @@
 # Development Roadmap
 
-## Phase 0 - Setup (Current)
+## Phase 0 - Setup
 - [x] Private repository
 - [x] Architecture documentation
-- [ ] Flutter project initialization
+- [x] Flutter project skeleton (pubspec.yaml + main.dart)
+- [ ] Full Flutter project init (android/ folder, etc.) — next
 
 ## Phase 1 - Basic Scanning
 - Camera preview
@@ -26,4 +27,4 @@
 - Quality settings
 - Performance optimization for S23 Ultra
 
-All changes will be small, reviewed, and pushed only with approval.
+All changes are small and careful.

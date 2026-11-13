@@ -1,8 +1,230 @@
 <!DOCTYPE html>
+<!--
+MediaPipe canonical face topology adapted to a JavaScript index array.
+
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+===========================================================================
+For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
+===========================================================================
+/*
+ * The authors of this software are Rob Pike and Ken Thompson.
+ *              Copyright (c) 2002 by Lucent Technologies.
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose without fee is hereby granted, provided that this entire notice
+ * is included in all copies of any software which is or includes a copy
+ * or modification of this software and in all copies of the supporting
+ * documentation for such software.
+ * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+ * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
+ * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+ * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+ */
+-->
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Face Scanner</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -60,6 +282,7 @@
       box-shadow: 0 4px 15px rgba(33,150,243,0.4);
       margin: 4px;
     }
+    button:disabled { opacity: 0.5; cursor: default; }
     button:active { transform: scale(0.96); }
     button.secondary { background: #424242; }
     button.success { background: #4CAF50; }
@@ -95,15 +318,15 @@
   <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
   <canvas id="preview3d"></canvas>
-  <div id="guide">صورت روبه‌رو و ثابت</div>
+  <div id="guide">صورت را داخل فریم قرار بده</div>
   <div id="angles"></div>
 
   <div id="ui">
     <button id="startBtn">شروع اسکن</button>
     <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
-    <button id="captureBtn" class="secondary" style="display:none;">گرفتن فریم</button>
-    <button id="stlBtn" class="success" style="display:none;">خروجی STL</button>
-    <div id="status">آماده برای شروع</div>
+    <button id="captureBtn" disabled class="secondary" style="display:none;">گرفتن فریم</button>
+    <button id="stlBtn" disabled class="success" style="display:none;">خروجی STL</button>
+    <div id="status" role="status">آماده برای شروع</div>
   </div>
 
   <script type="module">
@@ -126,16 +349,132 @@
     let running = false;
     let lastVideoTime = -1;
     let smileMode = false;
-    let capturedFrames = [];
+    let capturedPositions = null;
     let currentLandmarks = null;
 
-    const FACE_INDICES = [127,34,139,11,0,37,232,231,120,72,37,39,128,121,47,232,121,128,104,69,67,175,171,148,118,50,101,73,39,40,9,151,108,48,115,131,194,204,211,74,40,185,80,42,183,40,92,186,230,229,118,202,212,214,83,18,17,76,61,146,160,29,30,56,157,173,106,204,194,135,214,192,203,165,98,21,71,68,51,45,4,144,24,23,77,146,91,205,50,187,201,200,18,91,106,182,90,91,181,85,84,17,206,203,36,148,171,140,92,40,39,193,189,244,159,158,28,247,246,161,236,3,196,54,68,104,193,168,8,117,228,31,189,193,55,98,97,99,126,47,100,166,79,218,155,154,26,209,49,131,135,136,150,47,126,217,223,52,53,45,51,134,211,170,140,67,69,108,43,106,91,230,119,120,226,130,247,63,53,52,238,20,242,46,70,156,78,62,96,46,53,63,143,34,227,123,117,111,44,125,19,236,134,51,216,206,205,154,153,22,39,37,167,200,201,208,36,142,100,57,212,202,20,60,99,28,158,157,35,226,113,160,159,27,204,202,210,113,225,46,43,202,204,62,76,77,137,123,116,41,38,72,203,129,142,64,98,240,49,102,64,41,73,74,212,216,207,42,74,184,169,170,211,170,149,176,105,66,69,122,6,168,123,147,187,96,77,90,65,55,107,89,90,180,101,100,120,63,105,104,93,137,227,15,86,85,129,102,49,14,87,86,55,8,9,100,47,121,145,23,22,88,89,179,6,122,196,88,95,96,138,172,136,215,58,172,115,48,219,42,80,81,195,3,51,43,146,61,171,175,199,81,82,38,53,46,225,144,163,110,52,65,66,229,228,117,34,127,234,107,108,69,109,108,151,48,64,235,62,78,191,129,209,126,111,35,143,117,123,50,222,65,52,19,125,141,221,55,65,3,195,197,25,7,33,220,237,44,70,71,139,122,193,245,247,130,33,71,21,162,170,169,150,188,174,196,216,186,92,2,97,167,141,125,241,164,167,37,72,38,12,38,82,13,63,68,71,226,35,111,101,50,205,206,92,165,209,198,217,165,167,97,220,115,218,133,112,243,239,238,241,214,135,169,190,173,133,171,208,32,125,44,237,86,87,178,85,86,179,84,85,180,83,84,181,201,83,182,137,93,132,76,62,183,61,76,184,57,61,185,212,57,186,214,207,187,34,143,156,79,239,237,123,137,177,44,1,4,201,194,32,64,102,129,213,215,138,59,166,219,242,99,97,2,94,141,75,59,235,24,110,228,25,130,226,23,24,229,22,23,230,26,22,231,112,26,232,189,190,243,221,56,190,28,56,221,27,28,222,29,27,223,30,29,224,247,30,225,238,79,20,166,59,75,60,75,240,147,177,215,20,79,166,187,147,213,112,233,244,233,128,245,128,114,188,114,217,174,131,115,220,217,198,236,198,131,134,177,132,58,143,35,124,110,163,7,228,110,25,356,389,368,11,302,267,452,350,349,302,303,269,357,343,277,452,453,357,333,332,297,175,152,377,384,398,382,347,348,330,303,304,270,9,336,337,278,279,360,418,262,431,304,408,409,310,415,407,270,409,410,450,348,347,422,430,434,313,314,17,306,307,375,387,388,260,286,414,398,335,406,418,364,367,416,423,358,327,251,284,298,281,5,4,373,374,253,307,320,321,425,427,411,421,313,18,321,405,406,320,404,405,315,16,17,426,425,266,377,400,369,322,391,269,417,465,464,386,257,258,466,260,388,456,399,419,284,332,333,417,285,8,346,340,261,413,441,285,327,460,328,355,371,329,392,439,438,382,341,256,429,420,360,364,394,379,277,343,437,443,444,283,275,440,363,431,262,369,297,338,337,273,375,321,450,451,349,446,342,467,293,334,282,458,461,462,276,353,383,308,324,325,276,300,293,372,345,447,382,398,362,352,345,340,274,1,19,456,248,281,436,427,425,381,256,252,269,391,393,200,199,428,266,330,329,287,273,422,250,462,328,258,286,384,265,353,342,387,259,257,424,431,430,342,353,276,273,335,424,292,325,307,366,447,345,271,303,302,423,266,371,294,455,460,279,278,294,271,272,304,432,434,427,272,407,408,394,430,431,395,369,400,334,333,299,351,417,168,352,280,411,325,319,320,295,296,336,319,403,404,330,348,349,293,298,333,323,454,447,15,16,315,358,429,279,14,15,316,285,336,9,329,349,350,374,380,252,318,402,403,6,197,419,318,319,325,367,364,365,435,367,397,344,438,439,272,271,311,195,5,281,273,287,291,396,428,199,311,271,268,283,444,445,373,254,339,263,466,249,282,334,296,449,347,346,264,447,454,336,296,299,338,10,151,278,439,455,292,407,415,358,371,355,340,345,372,390,249,466,346,347,280,442,443,282,19,94,370,441,442,295,248,419,197,263,255,359,440,275,274,300,383,368,351,412,465,263,467,466,301,368,389,380,374,386,395,378,379,412,351,419,436,426,322,373,390,388,2,164,393,370,462,461,164,0,267,302,11,12,374,373,387,268,12,13,293,300,301,446,261,340,385,384,381,330,266,425,426,423,391,429,355,437,391,327,326,440,457,438,341,382,362,459,457,461,434,430,394,414,463,362,396,369,262,354,461,457,10,338,297,338,297,332,297,332,284,332,284,251,284,251,389,251,389,356,389,356,454,356,454,323,454,323,361,323,361,288,361,288,397,288,397,365,397,365,379,365,379,378,379,378,400,378,400,377,400,377,152,377,152,148,152,148,176,148,176,149,176,149,150,149,150,136,150,136,172,136,172,58,172,58,132,58,132,93,132,93,234,93,234,127,234,127,162,127,162,21,162,21,54,21,54,103,54,103,67,103,67,109,67,109,10];
+    // MediaPipe canonical face model, v0.10.14 (Apache-2.0).
+    // https://github.com/google-ai-edge/mediapipe/blob/v0.10.14/mediapipe/modules/face_geometry/data/canonical_face_model.obj
+    const FACE_VERTEX_COUNT = 468;
+    const FACE_INDICES = [
+      173,155,133, 246,33,7, 382,398,362, 263,466,249, 308,415,324, 78,95,191, 356,389,264, 127,34,162,
+      368,264,389, 139,162,34, 267,0,302, 37,72,0, 11,302,0, 11,0,72, 349,451,350, 120,121,231,
+      452,350,451, 232,231,121, 267,302,269, 37,39,72, 303,269,302, 73,72,39, 357,343,350, 128,121,114,
+      277,350,343, 47,114,121, 350,452,357, 121,128,232, 453,357,452, 233,232,128, 299,333,297, 69,67,104,
+      332,297,333, 103,104,67, 175,152,396, 175,171,152, 377,396,152, 148,152,171, 381,384,382, 154,155,157,
+      398,382,384, 173,157,155, 280,347,330, 50,101,118, 348,330,347, 119,118,101, 269,303,270, 39,40,73,
+      304,270,303, 74,73,40, 9,336,151, 9,151,107, 337,151,336, 108,107,151, 344,278,360, 115,131,48,
+      279,360,278, 49,48,131, 262,431,418, 32,194,211, 424,418,431, 204,211,194, 304,408,270, 74,40,184,
+      409,270,408, 185,184,40, 272,310,407, 42,183,80, 415,407,310, 191,80,183, 322,270,410, 92,186,40,
+      409,410,270, 185,40,186, 347,449,348, 118,119,229, 450,348,449, 230,229,119, 434,432,430, 214,210,212,
+      422,430,432, 202,212,210, 313,314,18, 83,18,84, 17,18,314, 17,84,18, 307,375,306, 77,76,146,
+      291,306,375, 61,146,76, 259,387,260, 29,30,160, 388,260,387, 161,160,30, 286,414,384, 56,157,190,
+      398,384,414, 173,190,157, 418,424,406, 194,182,204, 335,406,424, 106,204,182, 367,416,364, 138,135,192,
+      434,364,416, 214,192,135, 391,423,327, 165,98,203, 358,327,423, 129,203,98, 298,301,284, 68,54,71,
+      251,284,301, 21,71,54, 4,275,5, 4,5,45, 281,5,275, 51,45,5, 254,373,253, 24,23,144,
+      374,253,373, 145,144,23, 320,321,307, 90,77,91, 375,307,321, 146,91,77, 280,425,411, 50,187,205,
+      427,411,425, 207,205,187, 421,313,200, 201,200,83, 18,200,313, 18,83,200, 335,321,406, 106,182,91,
+      405,406,321, 181,91,182, 405,321,404, 181,180,91, 320,404,321, 90,91,180, 17,314,16, 17,16,84,
+      315,16,314, 85,84,16, 425,266,426, 205,206,36, 423,426,266, 203,36,206, 369,396,400, 140,176,171,
+      377,400,396, 148,171,176, 391,269,322, 165,92,39, 270,322,269, 40,39,92, 417,465,413, 193,189,245,
+      464,413,465, 244,245,189, 257,258,386, 27,159,28, 385,386,258, 158,28,159, 260,388,467, 30,247,161,
+      466,467,388, 246,161,247, 248,456,419, 3,196,236, 399,419,456, 174,236,196, 333,298,332, 104,103,68,
+      284,332,298, 54,68,103, 285,8,417, 55,193,8, 168,417,8, 168,8,193, 340,261,346, 111,117,31,
+      448,346,261, 228,31,117, 285,417,441, 55,221,193, 413,441,417, 189,193,221, 327,460,326, 98,97,240,
+      328,326,460, 99,240,97, 277,355,329, 47,100,126, 371,329,355, 142,126,100, 309,392,438, 79,218,166,
+      439,438,392, 219,166,218, 381,382,256, 154,26,155, 341,256,382, 112,155,26, 360,279,420, 131,198,49,
+      429,420,279, 209,49,198, 365,364,379, 136,150,135, 394,379,364, 169,135,150, 355,277,437, 126,217,47,
+      343,437,277, 114,47,217, 443,444,282, 223,52,224, 283,282,444, 53,224,52, 281,275,363, 51,134,45,
+      440,363,275, 220,45,134, 431,262,395, 211,170,32, 369,395,262, 140,32,170, 337,299,338, 108,109,69,
+      297,338,299, 67,69,109, 335,273,321, 106,91,43, 375,321,273, 146,43,91, 348,450,349, 119,120,230,
+      451,349,450, 231,230,120, 467,359,342, 247,113,130, 446,342,359, 226,130,113, 282,283,334, 52,105,53,
+      293,334,283, 63,53,105, 250,458,462, 20,242,238, 461,462,458, 241,238,242, 276,353,300, 46,70,124,
+      383,300,353, 156,124,70, 325,292,324, 96,95,62, 308,324,292, 78,62,95, 283,276,293, 53,63,46,
+      300,293,276, 70,46,63, 447,264,345, 227,116,34, 372,345,264, 143,34,116, 352,345,346, 123,117,116,
+      340,346,345, 111,116,117, 1,19,274, 1,44,19, 354,274,19, 125,19,44, 248,281,456, 3,236,51,
+      363,456,281, 134,51,236, 425,426,427, 205,207,206, 436,427,426, 216,206,207, 380,381,252, 153,22,154,
+      256,252,381, 26,154,22, 391,393,269, 165,39,167, 267,269,393, 37,167,39, 199,428,200, 199,200,208,
+      421,200,428, 201,208,200, 330,329,266, 101,36,100, 371,266,329, 142,100,36, 422,432,273, 202,43,212,
+      287,273,432, 57,212,43, 290,250,328, 60,99,20, 462,328,250, 242,20,99, 258,286,385, 28,158,56,
+      384,385,286, 157,56,158, 342,446,353, 113,124,226, 265,353,446, 35,226,124, 257,386,259, 27,29,159,
+      387,259,386, 160,159,29, 430,422,431, 210,211,202, 424,431,422, 204,202,211, 445,342,276, 225,46,113,
+      353,276,342, 124,113,46, 424,422,335, 204,106,202, 273,335,422, 43,202,106, 306,292,307, 76,77,62,
+      325,307,292, 96,62,77, 366,447,352, 137,123,227, 345,352,447, 116,227,123, 302,268,303, 72,73,38,
+      271,303,268, 41,38,73, 371,358,266, 142,36,129, 423,266,358, 203,129,36, 327,294,460, 98,240,64,
+      455,460,294, 235,64,240, 294,331,278, 64,48,102, 279,278,331, 49,102,48, 303,271,304, 73,74,41,
+      272,304,271, 42,41,74, 427,436,434, 207,214,216, 432,434,436, 212,216,214, 304,272,408, 74,184,42,
+      407,408,272, 183,42,184, 394,430,395, 169,170,210, 431,395,430, 211,210,170, 395,369,378, 170,149,140,
+      400,378,369, 176,140,149, 296,334,299, 66,69,105, 333,299,334, 104,105,69, 417,168,351, 193,122,168,
+      6,351,168, 6,168,122, 280,411,352, 50,123,187, 376,352,411, 147,187,123, 319,320,325, 89,96,90,
+      307,325,320, 77,90,96, 285,295,336, 55,107,65, 296,336,295, 66,65,107, 404,320,403, 180,179,90,
+      319,403,320, 89,90,179, 330,348,329, 101,100,119, 349,329,348, 120,119,100, 334,293,333, 105,104,63,
+      298,333,293, 68,63,104, 323,454,366, 93,137,234, 447,366,454, 227,234,137, 16,315,15, 16,15,85,
+      316,15,315, 86,85,15, 429,279,358, 209,129,49, 331,358,279, 102,49,129, 15,316,14, 15,14,86,
+      317,14,316, 87,86,14, 8,285,9, 8,9,55, 336,9,285, 107,55,9, 329,349,277, 100,47,120,
+      350,277,349, 121,120,47, 252,253,380, 22,153,23, 374,380,253, 145,23,153, 402,403,318, 178,88,179,
+      319,318,403, 89,179,88, 351,6,419, 122,196,6, 197,419,6, 197,6,196, 324,318,325, 95,96,88,
+      319,325,318, 89,88,96, 397,367,365, 172,136,138, 364,365,367, 135,138,136, 288,435,397, 58,172,215,
+      367,397,435, 138,215,172, 438,439,344, 218,115,219, 278,344,439, 48,219,115, 271,311,272, 41,42,81,
+      310,272,311, 80,81,42, 5,281,195, 5,195,51, 248,195,281, 3,51,195, 273,287,375, 43,146,57,
+      291,375,287, 61,57,146, 396,428,175, 171,175,208, 199,175,428, 199,208,175, 268,312,271, 38,41,82,
+      311,271,312, 81,82,41, 444,445,283, 224,53,225, 276,283,445, 46,225,53, 254,339,373, 24,144,110,
+      390,373,339, 163,110,144, 295,282,296, 65,66,52, 334,296,282, 105,52,66, 346,448,347, 117,118,228,
+      449,347,448, 229,228,118, 454,356,447, 234,227,127, 264,447,356, 34,127,227, 336,296,337, 107,108,66,
+      299,337,296, 69,66,108, 151,337,10, 151,10,108, 338,10,337, 109,108,10, 278,439,294, 48,64,219,
+      455,294,439, 235,219,64, 407,415,292, 183,62,191, 308,292,415, 78,191,62, 358,371,429, 129,209,142,
+      355,429,371, 126,142,209, 345,372,340, 116,111,143, 265,340,372, 35,143,111, 388,390,466, 161,246,163,
+      249,466,390, 7,163,246, 352,346,280, 123,50,117, 347,280,346, 118,117,50, 295,442,282, 65,52,222,
+      443,282,442, 223,222,52, 19,94,354, 19,125,94, 370,354,94, 141,94,125, 295,285,442, 65,222,55,
+      441,442,285, 221,55,222, 419,197,248, 196,3,197, 195,248,197, 195,197,3, 359,263,255, 130,25,33,
+      249,255,263, 7,33,25, 275,274,440, 45,220,44, 457,440,274, 237,44,220, 300,383,301, 70,71,156,
+      368,301,383, 139,156,71, 417,351,465, 193,245,122, 412,465,351, 188,122,245, 466,263,467, 246,247,33,
+      359,467,263, 130,33,247, 389,251,368, 162,139,21, 301,368,251, 71,21,139, 374,386,380, 145,153,159,
+      385,380,386, 158,159,153, 379,394,378, 150,149,169, 395,378,394, 170,169,149, 351,419,412, 122,188,196,
+      399,412,419, 174,196,188, 426,322,436, 206,216,92, 410,436,322, 186,92,216, 387,373,388, 160,161,144,
+      390,388,373, 163,144,161, 393,326,164, 167,164,97, 2,164,326, 2,97,164, 354,370,461, 125,241,141,
+      462,461,370, 242,141,241, 0,267,164, 0,164,37, 393,164,267, 167,37,164, 11,12,302, 11,72,12,
+      268,302,12, 38,12,72, 386,374,387, 159,160,145, 373,387,374, 144,145,160, 12,13,268, 12,38,13,
+      312,268,13, 82,13,38, 293,300,298, 63,68,70, 301,298,300, 71,70,68, 340,265,261, 111,31,35,
+      446,261,265, 226,35,31, 380,385,381, 153,154,158, 384,381,385, 157,158,154, 280,330,425, 50,205,101,
+      266,425,330, 36,101,205, 423,391,426, 203,206,165, 322,426,391, 92,165,206, 429,355,420, 209,198,126,
+      437,420,355, 217,126,198, 391,327,393, 165,167,98, 326,393,327, 97,98,167, 457,438,440, 237,220,218,
+      344,440,438, 115,218,220, 382,362,341, 155,112,133, 463,341,362, 243,133,112, 457,461,459, 237,239,241,
+      458,459,461, 238,241,239, 434,430,364, 214,135,210, 394,364,430, 169,210,135, 414,463,398, 190,173,243,
+      362,398,463, 133,243,173, 262,428,369, 32,140,208, 396,369,428, 171,208,140, 457,274,461, 237,241,44,
+      354,461,274, 125,44,241, 316,403,317, 86,87,179, 402,317,403, 178,179,87, 315,404,316, 85,86,180,
+      403,316,404, 179,180,86, 314,405,315, 84,85,181, 404,315,405, 180,181,85, 313,406,314, 83,84,182,
+      405,314,406, 181,182,84, 418,406,421, 194,201,182, 313,421,406, 83,182,201, 366,401,323, 137,93,177,
+      361,323,401, 132,177,93, 408,407,306, 184,76,183, 292,306,407, 62,183,76, 408,306,409, 184,185,76,
+      291,409,306, 61,76,185, 410,409,287, 186,57,185, 291,287,409, 61,185,57, 436,410,432, 216,212,186,
+      287,432,410, 57,186,212, 434,416,427, 214,207,192, 411,427,416, 187,192,207, 264,368,372, 34,143,139,
+      383,372,368, 156,139,143, 457,459,438, 237,218,239, 309,438,459, 79,239,218, 352,376,366, 123,137,147,
+      401,366,376, 177,147,137, 4,1,275, 4,45,1, 274,275,1, 44,1,45, 428,262,421, 208,201,32,
+      418,421,262, 194,32,201, 327,358,294, 98,64,129, 331,294,358, 102,129,64, 367,435,416, 138,192,215,
+      433,416,435, 213,215,192, 455,439,289, 235,59,219, 392,289,439, 166,219,59, 328,462,326, 99,97,242,
+      370,326,462, 141,242,97, 326,370,2, 97,2,141, 94,2,370, 94,141,2, 460,455,305, 240,75,235,
+      289,305,455, 59,235,75, 448,339,449, 228,229,110, 254,449,339, 24,110,229, 261,446,255, 31,25,226,
+      359,255,446, 130,226,25, 449,254,450, 229,230,24, 253,450,254, 23,24,230, 450,253,451, 230,231,23,
+      252,451,253, 22,23,231, 451,252,452, 231,232,22, 256,452,252, 26,22,232, 256,341,452, 26,232,112,
+      453,452,341, 233,112,232, 413,464,414, 189,190,244, 463,414,464, 243,244,190, 441,413,286, 221,56,189,
+      414,286,413, 190,189,56, 441,286,442, 221,222,56, 258,442,286, 28,56,222, 442,258,443, 222,223,28,
+      257,443,258, 27,28,223, 444,443,259, 224,29,223, 257,259,443, 27,223,29, 259,260,444, 29,224,30,
+      445,444,260, 225,30,224, 260,467,445, 30,225,247, 342,445,467, 113,247,225, 250,309,458, 20,238,79,
+      459,458,309, 239,79,238, 290,305,392, 60,166,75, 289,392,305, 59,75,166, 460,305,328, 240,99,75,
+      290,328,305, 60,75,99, 376,433,401, 147,177,213, 435,401,433, 215,213,177, 250,290,309, 20,79,60,
+      392,309,290, 166,60,79, 411,416,376, 187,147,192, 433,376,416, 213,192,147, 341,463,453, 112,233,243,
+      464,453,463, 244,243,233, 453,464,357, 233,128,244, 465,357,464, 245,244,128, 412,343,465, 188,245,114,
+      357,465,343, 128,114,245, 437,343,399, 217,174,114, 412,399,343, 188,114,174, 363,440,360, 134,131,220,
+      344,360,440, 115,220,131, 456,420,399, 236,174,198, 437,399,420, 217,198,174, 456,363,420, 236,198,134,
+      360,420,363, 131,134,198, 361,401,288, 132,58,177, 435,288,401, 215,177,58, 353,265,383, 124,156,35,
+      372,383,265, 143,35,156, 255,249,339, 25,110,7, 390,339,249, 163,7,110, 261,255,448, 31,228,25,
+      339,448,255, 110,25,228, 14,317,13, 14,13,87, 312,13,317, 82,87,13, 317,402,312, 87,82,178,
+      311,312,402, 81,178,82, 402,318,311, 178,81,88, 310,311,318, 80,88,81, 318,324,310, 88,80,95,
+      415,310,324, 191,95,80
+    ];
 
     let scene, camera, renderer, mesh;
     function initThree() {
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
-      camera.position.z = 2.5;
+      camera = new THREE.PerspectiveCamera(50, 1, 0.01, 10);
       renderer = new THREE.WebGLRenderer({ canvas: preview3d, alpha: true, antialias: true });
       renderer.setSize(140, 140);
       const light = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -144,34 +483,39 @@
       scene.add(new THREE.AmbientLight(0x666666));
     }
 
-    function updateMesh(landmarks) {
-      if (!landmarks || landmarks.length < 100) return;
+    function facePositions(landmarks, aspect) {
+      if (!landmarks || landmarks.length < FACE_VERTEX_COUNT || !Number.isFinite(aspect) || aspect <= 0) return null;
 
-      const positions = [];
-      const indices = [];
+      const positions = new Float32Array(FACE_VERTEX_COUNT * 3);
+      const anchor = landmarks[1];
+      for (let i = 0; i < FACE_VERTEX_COUNT; i++) {
+        const { x, y, z } = landmarks[i];
+        if (![x, y, z].every(Number.isFinite)) return null;
+        positions.set([x - anchor.x, (anchor.y - y) / aspect, anchor.z - z], i * 3);
+      }
+      return positions;
+    }
 
-      for (let i = 0; i < landmarks.length; i++) {
-        const lm = landmarks[i];
-        positions.push((lm.x - 0.5) * 2, -(lm.y - 0.5) * 2, (lm.z || 0) * 2.2);
+    function updateMesh(positions) {
+      if (!positions) return;
+      if (!mesh) {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions.length), 3));
+        geometry.setIndex(FACE_INDICES);
+        const material = new THREE.MeshStandardMaterial({ color: 0x00e676, roughness: 0.6 });
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.frustumCulled = false;
+        scene.add(mesh);
       }
 
-      for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
-        const a = FACE_INDICES[i];
-        const b = FACE_INDICES[i+1];
-        const c = FACE_INDICES[i+2];
-        if (a < landmarks.length && b < landmarks.length && c < landmarks.length) {
-          indices.push(a, b, c);
-        }
-      }
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-
-      if (mesh) scene.remove(mesh);
-      mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x00e676, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide }));
-      scene.add(mesh);
+      const attribute = mesh.geometry.attributes.position;
+      attribute.array.set(positions);
+      attribute.needsUpdate = true;
+      mesh.geometry.computeVertexNormals();
+      mesh.geometry.computeBoundingSphere();
+      const { center, radius } = mesh.geometry.boundingSphere;
+      mesh.position.copy(center).negate();
+      camera.position.z = Math.max(0.25, radius * 3);
       renderer.render(scene, camera);
       preview3d.style.display = 'block';
     }
@@ -181,14 +525,15 @@
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
-      faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+      const createLandmarker = (delegate) => FaceLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "GPU"
+          delegate
         },
         runningMode: "VIDEO",
         numFaces: 1
       });
+      faceLandmarker = await createLandmarker('GPU').catch(() => createLandmarker('CPU'));
       statusEl.textContent = 'مدل آماده است';
       initThree();
     }
@@ -212,7 +557,7 @@
         captureBtn.style.display = 'inline-block';
         stlBtn.style.display = 'inline-block';
         statusEl.textContent = 'دوربین فعال شد';
-        anglesEl.textContent = 'صورت روبه‌رو و ثابت — یک فریم کافی است';
+        anglesEl.textContent = 'روبه‌روی دوربین و در نور یکنواخت بایست';
         resize();
         window.addEventListener('resize', resize);
         detectLoop();
@@ -239,130 +584,121 @@
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
 
-        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-          const landmarks = results.faceLandmarks[0];
-          currentLandmarks = landmarks;
-          statusEl.textContent = smileMode ? 'لبخند تشخیص داده شد' : 'صورت تشخیص داده شد';
-          guideEl.textContent = smileMode ? 'لبخند بزن و ثابت' : 'صورت روبه‌رو و ثابت';
+        const landmarks = results.faceLandmarks?.[0];
+        currentLandmarks = landmarks || null;
+        captureBtn.disabled = !landmarks;
+        guideEl.textContent = landmarks
+          ? (smileMode ? 'لبخند بزن و فریم بگیر' : 'روبه‌رو نگاه کن و فریم بگیر')
+          : 'صورت را داخل دایره قرار بده';
+
+        if (landmarks) {
+          const scale = Math.max(overlay.width / video.videoWidth, overlay.height / video.videoHeight);
+          const imageWidth = video.videoWidth * scale;
+          const imageHeight = video.videoHeight * scale;
+          const left = (overlay.width - imageWidth) / 2;
+          const top = (overlay.height - imageHeight) / 2;
 
           ctx.fillStyle = smileMode ? '#ffc107' : '#00e676';
-          for (const lm of landmarks) {
-            const x = lm.x * overlay.width;
-            const y = lm.y * overlay.height;
+          for (const point of landmarks) {
             ctx.beginPath();
-            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.arc(left + (1 - point.x) * imageWidth, top + point.y * imageHeight, 2, 0, Math.PI * 2);
             ctx.fill();
           }
-
-          let minX = 1, minY = 1, maxX = 0, maxY = 0;
-          for (const lm of landmarks) {
-            minX = Math.min(minX, lm.x);
-            minY = Math.min(minY, lm.y);
-            maxX = Math.max(maxX, lm.x);
-            maxY = Math.max(maxY, lm.y);
-          }
-          ctx.strokeStyle = '#2196F3';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(minX * overlay.width, minY * overlay.height, (maxX - minX) * overlay.width, (maxY - minY) * overlay.height);
-
-          updateMesh(landmarks);
-        } else {
-          statusEl.textContent = 'صورت پیدا نشد';
-          guideEl.textContent = 'صورت را داخل دایره قرار بده';
-          currentLandmarks = null;
+          if (!capturedPositions) updateMesh(facePositions(landmarks, video.videoWidth / video.videoHeight));
+        } else if (!capturedPositions) {
+          preview3d.style.display = 'none';
         }
       }
       requestAnimationFrame(detectLoop);
     }
 
     function captureFrame() {
-      if (!currentLandmarks) {
-        statusEl.textContent = 'اول صورت را تشخیص بده';
+      const positions = facePositions(currentLandmarks, video.videoWidth / video.videoHeight);
+      if (!positions) {
+        statusEl.textContent = 'صورت را دوباره در کادر قرار بده';
         return;
       }
-      capturedFrames = [JSON.parse(JSON.stringify(currentLandmarks))];
-      statusEl.textContent = 'فریم تمیز گرفته شد';
-      anglesEl.textContent = 'آماده برای خروجی STL';
+      capturedPositions = positions;
+      updateMesh(capturedPositions);
+      captureBtn.textContent = 'گرفتن دوباره';
+      stlBtn.disabled = false;
+      statusEl.textContent = 'فریم ثبت شد. پیش‌نمایش و STL از همین فریم ساخته می‌شوند.';
+    }
+
+    function faceSTL(positions) {
+      const output = ['solid face_surface'];
+      const coordinateScale = 100;
+      for (let i = 0; i < FACE_INDICES.length; i += 3) {
+        const a = FACE_INDICES[i] * 3;
+        const b = FACE_INDICES[i + 1] * 3;
+        const c = FACE_INDICES[i + 2] * 3;
+        const ux = positions[b] - positions[a];
+        const uy = positions[b + 1] - positions[a + 1];
+        const uz = positions[b + 2] - positions[a + 2];
+        const vx = positions[c] - positions[a];
+        const vy = positions[c + 1] - positions[a + 1];
+        const vz = positions[c + 2] - positions[a + 2];
+        const nx = uy * vz - uz * vy;
+        const ny = uz * vx - ux * vz;
+        const nz = ux * vy - uy * vx;
+        const length = Math.hypot(nx, ny, nz);
+        if (length < 1e-10) return null;
+
+        output.push(`  facet normal ${nx / length} ${ny / length} ${nz / length}`, '    outer loop');
+        for (const offset of [a, b, c]) {
+          const [x, y, z] = positions.subarray(offset, offset + 3);
+          output.push(`      vertex ${x * coordinateScale} ${y * coordinateScale} ${z * coordinateScale}`);
+        }
+        output.push('    endloop', '  endfacet');
+      }
+      output.push('endsolid face_surface', '');
+      return output.join('\n');
     }
 
     function exportSTL() {
-      const landmarks = capturedFrames.length > 0 ? capturedFrames[0] : currentLandmarks;
-      if (!landmarks || landmarks.length < 400) {
-        statusEl.textContent = 'اول فریم بگیر';
+      if (!capturedPositions) return;
+      const stl = faceSTL(capturedPositions);
+      if (!stl) {
+        statusEl.textContent = 'سطح این فریم ناقص است. روبه‌روی دوربین دوباره فریم بگیر.';
         return;
       }
 
-      const scale = 120;
-      const depthScale = 2.4;
-      let stl = 'solid face_clean\n';
-
-      for (let i = 0; i < FACE_INDICES.length - 2; i += 3) {
-        const i1 = FACE_INDICES[i];
-        const i2 = FACE_INDICES[i + 1];
-        const i3 = FACE_INDICES[i + 2];
-
-        if (i1 >= landmarks.length || i2 >= landmarks.length || i3 >= landmarks.length) continue;
-
-        const a = landmarks[i1];
-        const b = landmarks[i2];
-        const c = landmarks[i3];
-
-        const ax = (a.x - 0.5) * scale;
-        const ay = (0.5 - a.y) * scale;
-        const az = (a.z || 0) * scale * depthScale;
-
-        const bx = (b.x - 0.5) * scale;
-        const by = (0.5 - b.y) * scale;
-        const bz = (b.z || 0) * scale * depthScale;
-
-        const cx = (c.x - 0.5) * scale;
-        const cy = (0.5 - c.y) * scale;
-        const cz = (c.z || 0) * scale * depthScale;
-
-        const ux = bx - ax, uy = by - ay, uz = bz - az;
-        const vx = cx - ax, vy = cy - ay, vz = cz - az;
-        let nx = uy * vz - uz * vy;
-        let ny = uz * vx - ux * vz;
-        let nz = ux * vy - uy * vx;
-        const len = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
-        nx /= len; ny /= len; nz /= len;
-
-        stl += `  facet normal ${nx.toFixed(4)} ${ny.toFixed(4)} ${nz.toFixed(4)}\n    outer loop\n`;
-        stl += `      vertex ${ax.toFixed(3)} ${ay.toFixed(3)} ${az.toFixed(3)}\n`;
-        stl += `      vertex ${bx.toFixed(3)} ${by.toFixed(3)} ${bz.toFixed(3)}\n`;
-        stl += `      vertex ${cx.toFixed(3)} ${cy.toFixed(3)} ${cz.toFixed(3)}\n`;
-        stl += `    endloop\n  endfacet\n`;
-      }
-
-      stl += 'endsolid face_clean\n';
-
-      const blob = new Blob([stl], { type: 'application/sla' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'face-clean.stl';
-      a.click();
-      URL.revokeObjectURL(url);
-      statusEl.textContent = 'مش تمیز دانلود شد';
+      const url = URL.createObjectURL(new Blob([stl], { type: 'model/stl' }));
+      const download = document.createElement('a');
+      download.href = url;
+      download.download = 'face-surface.stl';
+      document.body.append(download);
+      download.click();
+      download.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      statusEl.textContent = 'STL سطح صورت آماده شد. ابعاد فایل تقریبی است.';
     }
 
     smileBtn.addEventListener('click', () => {
       smileMode = !smileMode;
       smileBtn.textContent = smileMode ? 'حالت صورت' : 'حالت لبخند';
       smileBtn.style.background = smileMode ? '#ff9800' : '#424242';
+      capturedPositions = null;
+      captureBtn.textContent = 'گرفتن فریم';
+      stlBtn.disabled = true;
+      preview3d.style.display = 'none';
+      statusEl.textContent = smileMode ? 'حالت ثبت لبخند' : 'حالت ثبت صورت';
     });
 
     startBtn.addEventListener('click', async () => {
-      if (!faceLandmarker) await initMediaPipe();
-      startCamera();
+      startBtn.disabled = true;
+      try {
+        if (!faceLandmarker) await initMediaPipe();
+        await startCamera();
+      } catch (error) {
+        statusEl.textContent = 'خطا در راه‌اندازی اسکن: ' + error.message;
+      } finally {
+        startBtn.disabled = false;
+      }
     });
 
     captureBtn.addEventListener('click', captureFrame);
     stlBtn.addEventListener('click', exportSTL);
-
-    initMediaPipe().catch(err => {
-      statusEl.textContent = 'خطا در بارگذاری: ' + err.message;
-    });
   </script>
 </body>
 </html>

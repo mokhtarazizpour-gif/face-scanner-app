@@ -8,14 +8,14 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
       font-family: system-ui, -apple-system, sans-serif; 
-      background: #0f0f0f; 
+      background: #111; 
       color: white; 
       overflow: hidden;
-      height: 100vh;
+      height: 100dvh;
     }
     #video {
       position: absolute;
-      top: 0; left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -23,107 +23,106 @@
     }
     #overlay {
       position: absolute;
-      top: 0; left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
     }
     #ui {
       position: absolute;
-      bottom: 30px;
+      bottom: 40px;
       left: 0; right: 0;
       text-align: center;
       z-index: 10;
+      padding: 0 20px;
     }
     button {
       background: #2196F3;
       color: white;
       border: none;
-      padding: 16px 32px;
+      padding: 18px 36px;
       font-size: 18px;
+      font-weight: 600;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(33,150,243,0.4);
+      box-shadow: 0 6px 20px rgba(33,150,243,0.45);
+      width: 100%;
+      max-width: 280px;
     }
-    button:active { transform: scale(0.96); }
+    button:active { transform: scale(0.97); }
     #status {
-      margin-top: 12px;
-      font-size: 14px;
-      opacity: 0.8;
+      margin-top: 14px;
+      font-size: 15px;
+      opacity: 0.85;
     }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
 
   <div id="ui">
     <button id="startBtn">شروع اسکن صورت</button>
-    <div id="status">آماده برای شروع — نسخه وب</div>
+    <div id="status">نسخه وب — آماده تست</div>
   </div>
 
   <script>
     const video = document.getElementById('video');
     const startBtn = document.getElementById('startBtn');
-    const status = document.getElementById('status');
+    const statusEl = document.getElementById('status');
     const overlay = document.getElementById('overlay');
     const ctx = overlay.getContext('2d');
+    let running = false;
 
-    let scanning = false;
+    function resizeCanvas() {
+      overlay.width = window.innerWidth;
+      overlay.height = window.innerHeight;
+    }
 
-    async function startCamera() {
+    async function start() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
         video.srcObject = stream;
-        status.textContent = 'دوربین فعال شد. صورت را داخل دایره قرار بده.';
+        statusEl.textContent = 'دوربین فعال شد';
         startBtn.textContent = 'در حال اسکن...';
-        scanning = true;
-
-        function resize() {
-          overlay.width = window.innerWidth;
-          overlay.height = window.innerHeight;
-        }
-        resize();
-        window.addEventListener('resize', resize);
-
-        function draw() {
-          if (!scanning) return;
-          ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-          const cx = overlay.width / 2;
-          const cy = overlay.height / 2.2;
-          const r = Math.min(overlay.width, overlay.height) * 0.32;
-
-          ctx.strokeStyle = '#00e676';
-          ctx.lineWidth = 5;
-          ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.fillStyle = 'rgba(0, 230, 118, 0.12)';
-          ctx.fill();
-
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 20px system-ui';
-          ctx.textAlign = 'center';
-          ctx.fillText('صورت را داخل دایره قرار بده', cx, cy + r + 50);
-
-          requestAnimationFrame(draw);
-        }
+        running = true;
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
         draw();
-      } catch (err) {
-        status.textContent = 'خطا: ' + err.message;
+      } catch (e) {
+        statusEl.textContent = 'خطا در دوربین: ' + e.message;
       }
     }
 
-    startBtn.onclick = startCamera;
+    function draw() {
+      if (!running) return;
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      const cx = overlay.width / 2;
+      const cy = overlay.height * 0.42;
+      const r = Math.min(overlay.width, overlay.height) * 0.30;
+
+      ctx.strokeStyle = '#00e676';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(0,230,118,0.13)';
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('صورت را داخل دایره قرار بده', cx, cy + r + 48);
+
+      requestAnimationFrame(draw);
+    }
+
+    startBtn.addEventListener('click', start);
   </script>
 </body>
 </html>

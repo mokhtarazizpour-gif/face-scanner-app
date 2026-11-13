@@ -243,6 +243,16 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       object-fit: cover;
       transform: scaleX(-1);
     }
+    #video.rear { transform: none; }
+    #scanGuide {
+      position: absolute; z-index: 25; top: 12px; inset-inline: 12px;
+      padding: 12px; border-radius: 14px; background: #14202aee;
+      text-align: center; color: #ffdfab;
+    }
+    #scanGuide.ready { color: #a3f7c9; }
+    #scanGuide progress { width: 100%; height: 9px; accent-color: #55dfa0; }
+    #scanSteps { display: flex; justify-content: space-around; gap: 6px; margin-bottom: 6px; font-size: 13px; }
+    #scanMessage { margin-top: 4px; font-size: 15px; }
     #overlay {
       position: absolute;
       inset: 0;
@@ -322,8 +332,14 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
   <div id="guide">صورت را داخل فریم قرار بده</div>
   <div id="angles"></div>
 
+  <section id="scanGuide" hidden aria-label="راهنمای ثبت چندزاویه‌ای">
+    <div id="scanSteps"><span>روبه‌رو</span><span>سه‌رخ اول</span><span>سه‌رخ دوم</span></div>
+    <progress id="scanProgress" max="3" value="0" aria-label="تعداد نماهای ثبت‌شده"></progress>
+    <div id="scanMessage" role="status"></div>
+  </section>
   <div id="ui">
     <button id="startBtn">شروع اسکن</button>
+    <button id="cameraBtn" class="secondary" aria-label="تغییر دوربین">دوربین پشت</button>
     <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
     <button id="captureBtn" disabled class="secondary" style="display:none;">گرفتن فریم</button>
     <button id="multiBtn" class="secondary" style="display:none;">ثبت چندزاویه‌ای</button>
@@ -349,6 +365,15 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     const stlBtn = document.getElementById('stlBtn');
     const plyBtn = document.getElementById('plyBtn');
     const statusEl = document.getElementById('status');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const scanGuide = document.getElementById('scanGuide');
+    const scanProgress = document.getElementById('scanProgress');
+    const scanSteps = document.getElementById('scanSteps');
+    const scanMessage = document.getElementById('scanMessage');
+    let facing = 'user';
+    let cameraBusy = false;
+    let lastGuideCheck = -Infinity;
+    let guideReady = false;
     const guideEl = document.getElementById('guide');
     const anglesEl = document.getElementById('angles');
 
@@ -583,35 +608,81 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       overlay.height = window.innerHeight;
     }
 
-    async function startCamera() {
+    async function startCamera(exact = false) {
+      let stream;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: exact ? { exact: facing } : { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
+        const actualFacing = stream.getVideoTracks()[0]?.getSettings().facingMode;
+        if (actualFacing === 'user' || actualFacing === 'environment') facing = actualFacing;
         video.srcObject = stream;
+        video.classList.toggle('rear', facing === 'environment');
         await video.play();
         running = true;
+        lastVideoTime = -1;
         startBtn.style.display = 'none';
         smileBtn.style.display = 'inline-block';
         captureBtn.style.display = 'inline-block';
         multiBtn.style.display = 'inline-block';
         stlBtn.style.display = 'inline-block';
         plyBtn.style.display = 'inline-block';
-        statusEl.textContent = 'دوربین فعال شد';
+        statusEl.textContent = facing === 'environment' ? 'دوربین پشت فعال شد' : 'دوربین جلو فعال شد';
         anglesEl.textContent = 'روبه‌روی دوربین و در نور یکنواخت بایست';
         resize();
         window.addEventListener('resize', resize);
         detectLoop();
-      } catch (err) {
-        statusEl.textContent = 'خطا دوربین: ' + err.message;
+        return true;
+      } catch (error) {
+        stream?.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        statusEl.textContent = 'دوربین باز نشد. دسترسی دوربین را بررسی کن.';
+        return false;
       }
     }
 
+    function cameraLabel() {
+      cameraBtn.textContent = facing === 'user' ? 'دوربین پشت' : 'دوربین جلو';
+      cameraBtn.setAttribute('aria-label', 'تغییر به ' + cameraBtn.textContent);
+    }
+
+    cameraBtn.addEventListener('click', async () => {
+      if (cameraBusy || startBtn.disabled) return;
+      const previous = facing;
+      facing = facing === 'user' ? 'environment' : 'user';
+      if (!running) {
+        cameraLabel();
+        statusEl.textContent = facing === 'user' ? 'دوربین جلو انتخاب شد' : 'دوربین پشت انتخاب شد';
+        return;
+      }
+      cameraBusy = true;
+      cameraBtn.disabled = true;
+      captureBtn.disabled = true;
+      const restartMulti = !!captureViews;
+      if (restartMulti) toggleMulti();
+      running = false;
+      cancelAnimationFrame(detectionFrame);
+      currentLandmarks = null;
+      video.srcObject?.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
+      const switched = await startCamera(true);
+      if (!switched) {
+        facing = previous;
+        if (await startCamera()) statusEl.textContent = 'دوربین دیگر در دسترس نبود.';
+        else startBtn.style.display = 'inline-block';
+      }
+      if (running && restartMulti) toggleMulti();
+      cameraLabel();
+      cameraBtn.disabled = false;
+      cameraBusy = false;
+    });
+
+    let detectionFrame;
     function detectLoop() {
       if (!running || !faceLandmarker) return;
 
-      if (video.currentTime !== lastVideoTime) {
+      if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
         lastVideoTime = video.currentTime;
         const results = faceLandmarker.detectForVideo(video, performance.now());
 
@@ -620,7 +691,8 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         const cx = overlay.width / 2;
         const cy = overlay.height * 0.42;
         const r = Math.min(overlay.width, overlay.height) * 0.28;
-        ctx.strokeStyle = smileMode ? 'rgba(255, 193, 7, 0.7)' : 'rgba(0, 230, 118, 0.6)';
+        ctx.strokeStyle = captureViews ? (guideReady ? '#60edaa' : '#ffc978')
+          : (smileMode ? '#ffc107b3' : '#00e67699');
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -628,7 +700,15 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
 
         const landmarks = results.faceLandmarks?.[0];
         currentLandmarks = landmarks || null;
-        captureBtn.disabled = !landmarks;
+        if (captureViews) {
+          const now = performance.now();
+          if (!landmarks || now - lastGuideCheck >= 220) {
+            lastGuideCheck = now;
+            refreshScanGuide();
+          }
+        } else {
+          captureBtn.disabled = !landmarks;
+        }
         if (!captureViews && !capturedPositions) guideEl.textContent = landmarks
           ? (smileMode ? 'لبخند بزن و فریم بگیر' : 'روبه‌رو نگاه کن و فریم بگیر')
           : 'صورت را داخل دایره قرار بده';
@@ -643,22 +723,25 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
           ctx.fillStyle = smileMode ? '#ffc107' : '#00e676';
           for (const point of landmarks) {
             ctx.beginPath();
-            ctx.arc(left + (1 - point.x) * imageWidth, top + point.y * imageHeight, 2, 0, Math.PI * 2);
+            ctx.arc(left + (facing === 'environment' ? point.x : 1 - point.x) * imageWidth, top + point.y * imageHeight, 2, 0, Math.PI * 2);
             ctx.fill();
           }
-          if (!capturedPositions) updateMesh(facePositions(landmarks, video.videoWidth / video.videoHeight));
+          if (!capturedPositions && !captureViews) updateMesh(facePositions(landmarks, video.videoWidth / video.videoHeight));
         } else if (!capturedPositions) {
           preview3d.style.display = 'none';
         }
       }
-      requestAnimationFrame(detectLoop);
+      detectionFrame = requestAnimationFrame(detectLoop);
     }
 
     function sampleVertexColors(landmarks, checkQuality = false) {
       if (!frameContext) return null;
-      frameCanvas.width = video.videoWidth;
-      frameCanvas.height = video.videoHeight;
-      frameContext.drawImage(video, 0, 0);
+      const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+      const targetWidth = Math.round(video.videoWidth * scale);
+      const targetHeight = Math.round(video.videoHeight * scale);
+      if (frameCanvas.width !== targetWidth) frameCanvas.width = targetWidth;
+      if (frameCanvas.height !== targetHeight) frameCanvas.height = targetHeight;
+      frameContext.drawImage(video, 0, 0, targetWidth, targetHeight);
       const { width, height } = frameCanvas;
       const pixels = frameContext.getImageData(0, 0, width, height).data;
       if (checkQuality) {
@@ -904,45 +987,63 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       captureBtn.textContent = 'گرفتن فریم';
     }
 
+    function showScanGuide(message, ready = false) {
+      guideReady = ready;
+      scanGuide.classList.toggle('ready', ready);
+      const text = (ready ? '✓ ' : '• ') + message;
+      if (scanMessage.textContent !== text) scanMessage.textContent = text;
+      captureBtn.disabled = !ready;
+    }
+
+    function scanProgressTo(count) {
+      scanProgress.value = count;
+      const labels = ['روبه‌رو', 'سه‌رخ اول', 'سه‌رخ دوم'];
+      Array.from(scanSteps.children).forEach((step, i) => {
+        step.textContent = (i < count ? '✓ ' : i === count ? '● ' : '○ ') + labels[i];
+      });
+    }
+
     function toggleMulti() {
       captureViews = captureViews ? null : [];
       resetCapture();
       multiBtn.textContent = captureViews ? 'لغو ثبت چندزاویه‌ای' : 'ثبت چندزاویه‌ای';
-      guideEl.textContent = captureViews
-        ? (smileMode ? 'از روبه‌رو با لبخند ثابت شروع کن' : 'از روبه‌رو با دهان بسته شروع کن')
-        : 'صورت را داخل فریم قرار بده';
-      anglesEl.textContent = captureViews
-        ? '۰ از ۳ نما · سر ثابت بماند و گوشی حرکت کند'
-        : 'روبه‌روی دوربین و در نور یکنواخت بایست';
+      guideEl.textContent = captureViews ? '' : 'صورت را داخل فریم قرار بده';
+      anglesEl.textContent = captureViews ? '' : 'روبه‌روی دوربین و در نور یکنواخت بایست';
       statusEl.textContent = '';
+      scanGuide.hidden = !captureViews;
+      preview3d.style.display = 'none';
+      if (captureViews) {
+        scanProgressTo(0);
+        lastGuideCheck = -Infinity;
+        refreshScanGuide();
+      } else {
+        captureBtn.disabled = !currentLandmarks;
+      }
     }
 
-    function collectView(positions) {
+    function assessView(positions) {
+      if (!positions) return { message: 'صورت را در کادر نگه دار.' };
       const faceWidth = Math.abs(positions[3 * 454] - positions[3 * 234]);
       if (faceWidth < 0.12 || [10, 152, 234, 454].some(i =>
         currentLandmarks[i].x < .03 || currentLandmarks[i].x > .97 ||
         currentLandmarks[i].y < .03 || currentLandmarks[i].y > .97)) {
-        statusEl.textContent = 'تمام صورت را در کادر نگه دار و کمی نزدیک‌تر شو.';
-        return;
+        return { message: 'تمام صورت را در کادر نگه دار و کمی نزدیک‌تر شو.' };
       }
       let yaw = 0;
       if (!captureViews.length) {
         const left = Math.abs(currentLandmarks[1].x - currentLandmarks[234].x);
         const right = Math.abs(currentLandmarks[1].x - currentLandmarks[454].x);
         if (Math.min(left, right) < 0.65 * Math.max(left, right)) {
-          statusEl.textContent = 'برای فریم اول، دوربین را روبه‌روی صورت بگیر.';
-          return;
+          return { message: 'برای فریم اول، دوربین را روبه‌روی صورت بگیر.' };
         }
       } else {
         const pose = fitPose(captureViews[0].positions, positions);
         const angle = Math.abs(pose?.yaw ?? 0);
         if (angle < 22 || angle > 60 || Math.abs(pose.pitch) > 22) {
-          statusEl.textContent = 'گوشی را در ارتفاع صورت نگه دار و از سه‌رخ فریم بگیر.';
-          return;
+          return { message: 'گوشی را در ارتفاع صورت نگه دار و از سه‌رخ فریم بگیر.' };
         }
         if (captureViews.length === 2 && Math.sign(pose.yaw) === Math.sign(captureViews[1].yaw)) {
-          statusEl.textContent = 'سه‌رخ سمت دیگر هنوز ثبت نشده.';
-          return;
+          return { message: 'سه‌رخ سمت دیگر هنوز ثبت نشده.' };
         }
         yaw = pose.yaw;
       }
@@ -950,21 +1051,36 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       let colors;
       try {
         colors = sampleVertexColors(currentLandmarks, true);
-      } catch (error) {
+      } catch {
         colors = null;
       }
-      if (!colors) {
-        statusEl.textContent = 'این فریم تار یا کم‌نوره. با نور یکنواخت دوباره بگیر.';
+      if (!colors) return { message: 'نور یکنواخت‌تر یا تصویر واضح‌تر لازم است.' };
+      return { positions, colors, yaw };
+    }
+
+    function refreshScanGuide() {
+      const assessment = assessView(facePositions(currentLandmarks, video.videoWidth / video.videoHeight));
+      const cue = ['روبه‌رو', 'سه‌رخ اول', 'سه‌رخ طرف دیگر'][captureViews.length];
+      const mode = captureViews.length === 0 ? (smileMode ? ' با لبخند ثابت' : ' با دهان بسته') : '';
+      showScanGuide(assessment.message || cue + mode + ' آماده است؛ فریم بگیر.', !assessment.message);
+    }
+
+    function collectView(positions) {
+      const view = assessView(positions);
+      if (view.message) {
+        showScanGuide(view.message);
         return;
       }
-      captureViews.push({ positions, colors, yaw });
+      captureViews.push(view);
       const count = captureViews.length;
-      anglesEl.textContent = count + ' از ۳ نما ثبت شد';
+      scanProgressTo(count);
       if (count < 3) {
-        guideEl.textContent = count === 1 ? 'حالا سه‌رخ یک طرف را بگیر' : 'حالا سه‌رخ طرف دیگر را بگیر';
-        statusEl.textContent = 'نما ثبت شد.';
+        showScanGuide(count === 1 ? 'سر ثابت بماند؛ گوشی را به یک طرف ببر.' : 'حالا گوشی را به سمت دیگر ببر.');
         return;
       }
+      scanGuide.hidden = true;
+      captureBtn.disabled = false;
+      anglesEl.textContent = '✓ هر سه نما ثبت شد';
       const [front, ...sides] = captureViews;
       const model = combineViews(front, sides);
       captureViews = null;
@@ -976,7 +1092,8 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     function captureFrame() {
       const positions = facePositions(currentLandmarks, video.videoWidth / video.videoHeight);
       if (!positions) {
-        statusEl.textContent = 'صورت را دوباره در کادر قرار بده';
+        if (captureViews) showScanGuide('صورت را در کادر نگه دار.');
+        else statusEl.textContent = 'صورت را دوباره در کادر قرار بده';
         return;
       }
       if (captureViews) {
@@ -1099,6 +1216,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       if (captureViews) toggleMulti();
       resetCapture();
       preview3d.style.display = 'none';
+      scanGuide.hidden = true;
       statusEl.textContent = smileMode ? 'حالت ثبت لبخند' : 'حالت ثبت صورت';
     });
 
@@ -1106,7 +1224,8 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       startBtn.disabled = true;
       try {
         if (!faceLandmarker) await initMediaPipe();
-        await startCamera();
+        await startCamera(facing === 'environment');
+        cameraLabel();
       } catch (error) {
         statusEl.textContent = 'خطا در راه‌اندازی اسکن: ' + error.message;
       } finally {

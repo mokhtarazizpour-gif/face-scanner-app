@@ -326,6 +326,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     <button id="smileBtn" class="secondary" style="display:none;">حالت لبخند</button>
     <button id="captureBtn" disabled class="secondary" style="display:none;">گرفتن فریم</button>
     <button id="stlBtn" disabled class="success" style="display:none;">خروجی STL</button>
+    <button id="plyBtn" disabled class="success" style="display:none;">خروجی PLY رنگی</button>
     <div id="status" role="status">آماده برای شروع</div>
   </div>
 
@@ -341,6 +342,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     const smileBtn = document.getElementById('smileBtn');
     const captureBtn = document.getElementById('captureBtn');
     const stlBtn = document.getElementById('stlBtn');
+    const plyBtn = document.getElementById('plyBtn');
     const statusEl = document.getElementById('status');
     const guideEl = document.getElementById('guide');
     const anglesEl = document.getElementById('angles');
@@ -350,6 +352,9 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
     let lastVideoTime = -1;
     let smileMode = false;
     let capturedPositions = null;
+    let capturedColors = null;
+    const frameCanvas = document.createElement('canvas');
+    const frameContext = frameCanvas.getContext('2d', { willReadFrequently: true });
     let currentLandmarks = null;
 
     // MediaPipe canonical face model, v0.10.14 (Apache-2.0).
@@ -556,6 +561,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         smileBtn.style.display = 'inline-block';
         captureBtn.style.display = 'inline-block';
         stlBtn.style.display = 'inline-block';
+        plyBtn.style.display = 'inline-block';
         statusEl.textContent = 'دوربین فعال شد';
         anglesEl.textContent = 'روبه‌روی دوربین و در نور یکنواخت بایست';
         resize();
@@ -612,17 +618,43 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       requestAnimationFrame(detectLoop);
     }
 
+    function sampleVertexColors(landmarks) {
+      if (!frameContext) return null;
+      frameCanvas.width = video.videoWidth;
+      frameCanvas.height = video.videoHeight;
+      frameContext.drawImage(video, 0, 0);
+      const { width, height } = frameCanvas;
+      const pixels = frameContext.getImageData(0, 0, width, height).data;
+      const colors = new Uint8Array(FACE_VERTEX_COUNT * 3);
+      for (let i = 0; i < FACE_VERTEX_COUNT; i++) {
+        const point = landmarks[i];
+        const x = Math.max(0, Math.min(width - 1, Math.round(point.x * (width - 1))));
+        const y = Math.max(0, Math.min(height - 1, Math.round(point.y * (height - 1))));
+        const index = (y * width + x) * 4;
+        colors.set(pixels.subarray(index, index + 3), i * 3);
+      }
+      return colors;
+    }
+
     function captureFrame() {
       const positions = facePositions(currentLandmarks, video.videoWidth / video.videoHeight);
       if (!positions) {
         statusEl.textContent = 'صورت را دوباره در کادر قرار بده';
         return;
       }
+      try {
+        capturedColors = sampleVertexColors(currentLandmarks);
+      } catch (error) {
+        capturedColors = null;
+      }
       capturedPositions = positions;
       updateMesh(capturedPositions);
       captureBtn.textContent = 'گرفتن دوباره';
       stlBtn.disabled = false;
-      statusEl.textContent = 'فریم ثبت شد. پیش‌نمایش و STL از همین فریم ساخته می‌شوند.';
+      plyBtn.disabled = !capturedColors;
+      statusEl.textContent = capturedColors
+        ? 'فریم ثبت شد. خروجی STL و PLY رنگی آماده است.'
+        : 'فریم ثبت شد. خروجی STL آماده است.';
     }
 
     function faceSTL(positions) {
@@ -663,15 +695,45 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
         return;
       }
 
-      const url = URL.createObjectURL(new Blob([stl], { type: 'model/stl' }));
+      downloadModel(stl, 'face-surface.stl', 'model/stl');
+      statusEl.textContent = 'STL سطح صورت آماده شد. ابعاد فایل تقریبی است.';
+    }
+
+    function facePLY(positions, colors) {
+      const lines = [
+        'ply', 'format ascii 1.0', 'comment Approximate facial surface',
+        `element vertex ${FACE_VERTEX_COUNT}`,
+        'property float x', 'property float y', 'property float z',
+        'property uchar red', 'property uchar green', 'property uchar blue',
+        `element face ${FACE_INDICES.length / 3}`,
+        'property list uchar int vertex_indices', 'end_header'
+      ];
+      for (let i = 0; i < positions.length; i += 3) {
+        const [x, y, z] = positions.subarray(i, i + 3);
+        const [red, green, blue] = colors.subarray(i, i + 3);
+        lines.push(`${100 * x} ${100 * y} ${100 * z} ${red} ${green} ${blue}`);
+      }
+      for (let i = 0; i < FACE_INDICES.length; i += 3) {
+        lines.push(`3 ${FACE_INDICES[i]} ${FACE_INDICES[i + 1]} ${FACE_INDICES[i + 2]}`);
+      }
+      return lines.join('\n') + '\n';
+    }
+
+    function exportPLY() {
+      if (!capturedPositions || !capturedColors) return;
+      downloadModel(facePLY(capturedPositions, capturedColors), 'face-surface-color.ply', 'application/octet-stream');
+      statusEl.textContent = 'PLY رنگی آماده شد. ابعاد فایل تقریبی است.';
+    }
+
+    function downloadModel(contents, name, type) {
+      const url = URL.createObjectURL(new Blob([contents], { type }));
       const download = document.createElement('a');
       download.href = url;
-      download.download = 'face-surface.stl';
+      download.download = name;
       document.body.append(download);
       download.click();
       download.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      statusEl.textContent = 'STL سطح صورت آماده شد. ابعاد فایل تقریبی است.';
     }
 
     smileBtn.addEventListener('click', () => {
@@ -679,6 +741,8 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
       smileBtn.textContent = smileMode ? 'حالت صورت' : 'حالت لبخند';
       smileBtn.style.background = smileMode ? '#ff9800' : '#424242';
       capturedPositions = null;
+      capturedColors = null;
+      plyBtn.disabled = true;
       captureBtn.textContent = 'گرفتن فریم';
       stlBtn.disabled = true;
       preview3d.style.display = 'none';
@@ -699,6 +763,7 @@ For files under tasks/cc/text/language_detector/custom_ops/utils/utf/
 
     captureBtn.addEventListener('click', captureFrame);
     stlBtn.addEventListener('click', exportSTL);
+    plyBtn.addEventListener('click', exportPLY);
   </script>
 </body>
 </html>

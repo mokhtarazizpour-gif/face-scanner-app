@@ -19,7 +19,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* mirror */
+      transform: scaleX(-1);
     }
     #overlay {
       position: absolute;
@@ -51,26 +51,17 @@
       font-size: 14px;
       opacity: 0.8;
     }
-    #canvas3d {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
   <canvas id="overlay"></canvas>
-  <canvas id="canvas3d"></canvas>
 
   <div id="ui">
     <button id="startBtn">شروع اسکن صورت</button>
-    <div id="status">آماده برای شروع</div>
+    <div id="status">آماده برای شروع — نسخه وب</div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     const video = document.getElementById('video');
     const startBtn = document.getElementById('startBtn');
@@ -78,12 +69,11 @@
     const overlay = document.getElementById('overlay');
     const ctx = overlay.getContext('2d');
 
-    let stream = null;
     let scanning = false;
 
     async function startCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: { 
             facingMode: 'user',
             width: { ideal: 1280 },
@@ -92,59 +82,48 @@
           audio: false
         });
         video.srcObject = stream;
-        status.textContent = 'دوربین فعال شد';
+        status.textContent = 'دوربین فعال شد. صورت را داخل دایره قرار بده.';
         startBtn.textContent = 'در حال اسکن...';
         scanning = true;
 
-        // Resize overlay
-        overlay.width = video.videoWidth || window.innerWidth;
-        overlay.height = video.videoHeight || window.innerHeight;
+        function resize() {
+          overlay.width = window.innerWidth;
+          overlay.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
 
-        requestAnimationFrame(drawLoop);
+        function draw() {
+          if (!scanning) return;
+          ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+          const cx = overlay.width / 2;
+          const cy = overlay.height / 2.2;
+          const r = Math.min(overlay.width, overlay.height) * 0.32;
+
+          ctx.strokeStyle = '#00e676';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(0, 230, 118, 0.12)';
+          ctx.fill();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 20px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('صورت را داخل دایره قرار بده', cx, cy + r + 50);
+
+          requestAnimationFrame(draw);
+        }
+        draw();
       } catch (err) {
-        status.textContent = 'خطا در دسترسی به دوربین: ' + err.message;
-        console.error(err);
+        status.textContent = 'خطا: ' + err.message;
       }
     }
 
-    function drawLoop() {
-      if (!scanning) return;
-
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-      // Simple face guide circle
-      const centerX = overlay.width / 2;
-      const centerY = overlay.height / 2;
-      const radius = Math.min(overlay.width, overlay.height) * 0.28;
-
-      ctx.strokeStyle = '#00ff88';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = 'rgba(0,255,136,0.15)';
-      ctx.fill();
-
-      ctx.fillStyle = 'white';
-      ctx.font = '18px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('صورت را داخل دایره قرار بده', centerX, centerY + radius + 40);
-
-      requestAnimationFrame(drawLoop);
-    }
-
-    startBtn.addEventListener('click', () => {
-      if (!scanning) {
-        startCamera();
-      }
-    });
-
-    // Handle resize
-    window.addEventListener('resize', () => {
-      overlay.width = window.innerWidth;
-      overlay.height = window.innerHeight;
-    });
+    startBtn.onclick = startCamera;
   </script>
 </body>
 </html>
